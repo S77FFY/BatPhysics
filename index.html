@@ -83,6 +83,23 @@
   #toast.on{opacity:1;}
   #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
 
+  /* Portrait: the canvas is drawn rotated 90deg to fill the screen, so rotate the
+     HUD + result overlays to match. They become width=100vh, height=100vw, rotated. */
+  body.portrait #hud{
+    width:100vh; left:auto; right:auto; top:0;
+    transform-origin:top left; transform:translateX(100vw) rotate(90deg);
+  }
+  body.portrait #toast{
+    transform-origin:top left;
+    transform:translate(100vw,0) rotate(90deg) translateX(50vh) translateX(-50%);
+    left:0; top:64px;
+  }
+  body.portrait #result{
+    width:100vh; height:100vw;
+    transform-origin:top left; transform:translateX(100vw) rotate(90deg);
+    inset:auto;
+  }
+
   /* result modal */
   #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
     background:#04060bcc;backdrop-filter:blur(3px);z-index:20;}
@@ -104,6 +121,9 @@
   .tag{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:11px;
     letter-spacing:3px;color:var(--crystal);text-transform:uppercase;}
   .foot{position:absolute;bottom:14px;font-size:11px;color:var(--dim);letter-spacing:1px;}
+  .ver{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px;
+    font-family:'SF Mono','Consolas','Menlo','Courier New',monospace;
+    font-size:11px;letter-spacing:1px;color:var(--dim);opacity:.8;}
   @media (max-width:520px){ .grid{grid-template-columns:repeat(4,1fr);} }
 </style>
 </head>
@@ -112,6 +132,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
+  <div class="ver">v1.1.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -149,6 +170,7 @@
     </div>
     <div class="pill" id="lvlName"></div>
     <div style="display:flex;gap:8px">
+      <button class="icbtn" id="fsBtn" onclick="UI.toggleFullscreen()" title="Fullscreen">⛶</button>
       <button class="icbtn" onclick="Game.retry()" title="Retry">⟳</button>
       <button class="icbtn" id="viewerBadge" style="display:none" onclick="UI.viewerSolve()" title="Show solution">✦</button>
     </div>
@@ -1189,18 +1211,49 @@ const Store={
 
 /* ============ canvas + camera ============ */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
-let VIEW={s:1,ox:0,oy:0};
+let VIEW={s:1,ox:0,oy:0,rot:false,W:0,H:0,dpr:1};
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   const w=window.innerWidth,h=window.innerHeight;
   cv.width=w*dpr; cv.height=h*dpr; cv.style.width=w+'px'; cv.style.height=h+'px';
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  const s=Math.min(w/BP.W,h/BP.H); VIEW.s=s;
-  VIEW.ox=(w-BP.W*s)/2; VIEW.oy=(h-BP.H*s)/2; VIEW.W=w; VIEW.H=h;
+  // Rotate when the device is in portrait (taller than wide) so the landscape
+  // 1600x900 world fills the screen. Effective drawing area swaps W/H when rotated.
+  VIEW.rot = h > w;
+  document.body.classList.toggle('portrait', VIEW.rot);
+  VIEW.dpr = dpr; VIEW.W = w; VIEW.H = h;
+  const availW = VIEW.rot ? h : w;     // world maps onto this many CSS px horizontally
+  const availH = VIEW.rot ? w : h;
+  const s = Math.min(availW/BP.W, availH/BP.H); VIEW.s = s;
+  VIEW.ox = (availW - BP.W*s)/2;
+  VIEW.oy = (availH - BP.H*s)/2;
 }
 window.addEventListener('resize',resize);
-function toWorld(cx,cy){return{x:(cx-VIEW.ox)/VIEW.s,y:(cy-VIEW.oy)/VIEW.s};}
+window.addEventListener('orientationchange',()=>setTimeout(resize,80));
+
+// Apply the base transform (dpr + optional 90° rotation) to the context.
+// After this, drawing in "screen" space (availW x availH) lands correctly.
+function applyBaseTransform(){
+  const dpr=VIEW.dpr;
+  if(VIEW.rot){
+    // rotate 90° clockwise: device portrait -> game landscape
+    // map (sx,sy) in availW(=h) x availH(=w) to physical (w,h)
+    ctx.setTransform(0, dpr, -dpr, 0, VIEW.W*dpr, 0);
+  } else {
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+}
+// world -> screen (in the availW x availH rotated space)
 function toScreen(wx,wy){return{x:wx*VIEW.s+VIEW.ox,y:wy*VIEW.s+VIEW.oy};}
+// pointer (physical client px) -> world
+function toWorld(cx,cy){
+  let sx,sy;
+  if(VIEW.rot){
+    // inverse of the clockwise rotation: physical (cx,cy) -> rotated screen space
+    sx = cy;
+    sy = VIEW.W - cx;
+  } else { sx = cx; sy = cy; }
+  return { x:(sx-VIEW.ox)/VIEW.s, y:(sy-VIEW.oy)/VIEW.s };
+}
 
 /* ============ rendering ============ */
 const Render=(()=>{
@@ -1223,9 +1276,11 @@ const Render=(()=>{
   function pal(){ const ch=(Render._ch||1); return PAL[Math.max(1,Math.min(10,ch))]; }
   function bg(){
     const P=pal();
+    const AW = VIEW.rot ? VIEW.H : VIEW.W;   // available width in rotated space
+    const AH = VIEW.rot ? VIEW.W : VIEW.H;
     const g=ctx.createLinearGradient(0,VIEW.oy,0,VIEW.oy+BP.H*VIEW.s);
     g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
-    ctx.fillStyle='#05070d'; ctx.fillRect(0,0,VIEW.W,VIEW.H);
+    ctx.fillStyle='#05070d'; ctx.fillRect(-10,-10,AW+20,AH+20);
     ctx.fillStyle=g;
     const p=toScreen(0,0);
     ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
@@ -1401,6 +1456,7 @@ const Render=(()=>{
   }
   function frame(w,opts){
     Render._ch = (w.lvl && w.lvl.ch) || 1;
+    applyBaseTransform();
     bg(); const L=w.lvl;
     rock(L); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
     if(opts.showTrail&&w.pts.length>1) trail(w.pts, w.won?'#37e0c8':'#5fd0ff');
@@ -1624,6 +1680,19 @@ const UI=(()=>{
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
     clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600);}
   return {go,toTitle,play,showSelect,refreshTitle,quitToSelect,openViewer,viewerSolve,toast,
+    toggleFullscreen(){
+      const el=document.documentElement;
+      const fs=document.fullscreenElement||document.webkitFullscreenElement;
+      try{
+        if(!fs){ (el.requestFullscreen||el.webkitRequestFullscreen||(()=>{})).call(el); }
+        else { (document.exitFullscreen||document.webkitExitFullscreen||(()=>{})).call(document); }
+      }catch(e){}
+      // iOS Safari doesn't support element fullscreen; hint the user
+      if(!document.fullscreenEnabled && !document.webkitFullscreenEnabled){
+        UI.toast('For true fullscreen on iPhone: Share → Add to Home Screen, then open from the icon.');
+      }
+      setTimeout(resize,120);
+    },
     resetAll(){if(confirm('Erase all progress?')){localStorage.removeItem(SAVE_KEY);Store.data={stars:{},best:{},unlocked:1};refreshTitle();}}};
 })();
 
