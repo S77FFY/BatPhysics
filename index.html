@@ -156,7 +156,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.6.0</div>
+  <div class="ver">v1.7.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -231,7 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.6.0</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.7.0</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -391,7 +391,7 @@ function makeWorld(level0, placements) {
   for (let i = 0; i < extra; i++) tools.push({ t: 'fix', h: 3 });
   w.toolDefs = tools;
   tools.forEach((a, i) => {
-    const pl = (placements && placements[i]) ? placements[i] : { x: 560 + i * 150, y: 470 };
+    const pl = (placements && placements[i]) ? placements[i] : { x: 470 + i * 150, y: 345 };
     if (a.t === 'osc') {
       w.arrows.push({ x: pl.x, y: pl.y, h: a.h1, h1: a.h1, h2: a.h2,
                       period: a.period || 2.4, kind: 'osc', armed: true, di: i });
@@ -471,27 +471,47 @@ function step(w) {
         hit = true;
       }
     }
-    // cogs: spinning discs with BIG teeth that grab the ball and carry it around
-    // the circumference. Collide at the tooth-tip radius; strong tangential drag.
-    (L.cogs || []).forEach((c) => {
-      const tooth = (c.tooth != null ? c.tooth : 14);     // tooth length beyond body
+    // cogs: a hub disc (radius r) with a few BIG teeth and WIDE gaps. The ball
+    // rests against the body and nestles into a gap; the rotating teeth carry it
+    // around. A tooth sweeping into the ball from behind pushes it tangentially.
+    (L.cogs || []).forEach((c, ci) => {
       const dx = w.p.x - c.x, dy = w.p.y - c.y; const d = Math.hypot(dx, dy);
-      const min = BALLR + c.r + tooth;
-      if (d < min && d > 1e-6) {
+      const tooth = (c.tooth != null ? c.tooth : 30);    // tooth length beyond body
+      const nteeth = c.teeth || 5;                         // few teeth -> wide gaps
+      const spin = c.spin || 1;
+      const surf = (c.surf != null ? c.surf : 320);
+      const cogAng = w.t * (surf / Math.max(40, c.r)) * spin;   // body angular pos
+      // 1) collide with the hub body (ball rolls on the rim, sits in gaps)
+      if (d < BALLR + c.r && d > 1e-6) {
         const nx = dx / d, ny = dy / d;
-        w.p.x += nx * (min - d); w.p.y += ny * (min - d);
+        w.p.x += nx * (BALLR + c.r - d); w.p.y += ny * (BALLR + c.r - d);
         const vn = w.v.x * nx + w.v.y * ny;
-        if (vn < 0) { const e = 0.2; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
-        // teeth grab: pull the ball toward the rim tangential speed (carry-around)
-        const spin = c.spin || 1;            // +1 cw, -1 ccw
+        if (vn < 0) { const e = 0.18; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+        // gentle carry: nudge tangential velocity toward rim speed
         const tx = -ny * spin, ty = nx * spin;
-        const surf = (c.surf != null ? c.surf : 360);
-        // blend ball's tangential velocity toward the rim speed (grab)
-        const grab = 0.3;
         const curT = w.v.x * tx + w.v.y * ty;
-        const dT = (surf - curT) * grab;
+        const dT = (surf - curT) * 0.18;
         w.v.x += tx * dT; w.v.y += ty * dT;
         hit = true;
+      }
+      // 2) teeth: thin radial pegs that bat the ball if one sweeps into it
+      for (let k = 0; k < nteeth; k++) {
+        const a2 = cogAng + k * (Math.PI * 2 / nteeth);
+        const tipx = c.x + Math.cos(a2) * (c.r + tooth);
+        const tipy = c.y + Math.sin(a2) * (c.r + tooth);
+        const basx = c.x + Math.cos(a2) * c.r;
+        const basy = c.y + Math.sin(a2) * c.r;
+        const cp = closestOnSeg(w.p.x, w.p.y, basx, basy, tipx, tipy);
+        const ddx = w.p.x - cp.x, ddy = w.p.y - cp.y, dd = Math.hypot(ddx, ddy);
+        if (dd < BALLR + SEG_TH && dd > 1e-6) {
+          const nx = ddx / dd, ny = ddy / dd;
+          w.p.x += nx * (BALLR + SEG_TH - dd); w.p.y += ny * (BALLR + SEG_TH - dd);
+          const rr = Math.hypot(cp.x - c.x, cp.y - c.y) || 1;
+          const tx = -(cp.y - c.y) / rr * spin, ty = (cp.x - c.x) / rr * spin;
+          const tangSpeed = surf;
+          w.v.x += tx * tangSpeed * DT * 4.0; w.v.y += ty * tangSpeed * DT * 4.0;
+          hit = true;
+        }
       }
     });
     // windmills: FREE-SPINNING rotors. Static until the ball pushes a blade, then
@@ -838,15 +858,143 @@ LV.push({ name:'The Hanging Deep', ch:1, tip:"Everything at once: cog, bounce, b
   secrets:[ R(1180,500,100,200) ],
   tools:[ T(12), T(12), T(1) ] });
 
+// ===================== ELABORATE MAZE LEVELS (11-20) =====================
+// More intricate: varied bat placements, NO ledge under the bats (catch via the
+// wide white-bat hit box), maze-like terrain, sawtooth crags. Some REQUIRE passing
+// through a trapdoor. Buttons always sit on a real surface. Authored, not pre-verified.
+
+// 11 · Pillar Maze — bats high on opposite walls, a forest of stalactites between.
+LV.push({ name:'Pillar Maze', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(360,330,44,260), R(620,330,44,200), R(880,330,44,300), R(1140,330,44,220),
+    R(500,640,44,180), R(760,680,44,160), R(1020,640,44,180),
+    R(0,820,1600,40),
+  ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 12 · The Drop Shaft — black bat centre-top, white low-left; must thread down then back.
+LV.push({ name:'The Drop Shaft', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:200,y:600}, launch:{vx:-260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(420,330,44,300), R(1140,330,44,300),
+    R(360,640,420,30), R(900,560,420,30),
+    R(0,840,1600,40),
+  ],
+  tools:[ T(12), T(11), T(1) ] });
+
+// 13 · Trapfall (REQUIRED) — the only route to the white bat is THROUGH a trapdoor.
+LV.push({ name:'Trapfall', ch:2, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1380,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1180,30),                  // upper floor the ball rolls along
+    R(1180,560,420,30),                // continues, with a trap gap below white
+    R(1300,820,300,30),                // lower floor where the white bat sits
+    R(40,820,1000,30),
+  ],
+  buttons:[ {x:300,y:546,door:0} ],     // on the upper floor (reachable by roll)
+  doors:[ {x1:1180,y1:560,x2:1420,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(12) ] });
+
+// 14 · Switchback — staggered shelves form a zigzag maze down to a corner exit.
+LV.push({ name:'Switchback', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:680}, launch:{vx:-280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(300,470,900,28),
+    R(420,600,900,28),
+    R(300,730,900,28),
+    R(0,860,1600,40),
+  ],
+  tools:[ T(11), T(1), T(12), T(11) ] });
+
+// 15 · The Cog Mill — a cog and a windmill guard the maze.
+LV.push({ name:'The Cog Mill', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:180,y:380}, white:{x:1420,y:420}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(520,330,44,220), R(1040,330,44,220),
+    R(0,800,1600,40),
+  ],
+  cogs:[ {x:760,y:600,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  windmills:[ {x:1180,y:560,len:100,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 16 · Double Trap (REQUIRED) — two trapdoors, two buttons on the ceiling & a crag.
+LV.push({ name:'Double Trap', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,540,560,30), R(760,540,300,30), R(1260,540,340,30),
+    R(40,820,1520,30),
+  ],
+  buttons:[ {x:430,y:526,door:0}, {x:900,y:526,door:1} ],
+  doors:[ {x1:560,y1:540,x2:760,y2:540,trig:{k:'button'},flap:true},
+          {x1:1060,y1:540,x2:1260,y2:540,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 17 · Bounce Labyrinth — bouncy walls line a tight maze.
+LV.push({ name:'Bounce Labyrinth', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:640}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(300,330,44,260), R(1080,330,44,260),
+    R(560,620,480,28),
+    R(0,840,1600,40),
+  ],
+  bouncy:[ R(300,600,44,200), R(1080,600,44,200), R(700,500,200,28) ],
+  tools:[ T(12), T(11), T(1) ] });
+
+// 18 · Spiral Descent — a near-spiral of shelves; bats top-left & centre-low.
+LV.push({ name:'Spiral Descent', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:780,y:700}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(200,470,1000,26),
+    R(1000,470,26,200),
+    R(400,660,640,26),
+    R(400,520,26,160),
+    R(0,860,1600,40),
+  ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 19 · The Gauntlet — windmills + cog + a required trapdoor finale-ish.
+LV.push({ name:'The Gauntlet', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:720}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,720,30), R(980,560,620,30),
+    R(1280,820,320,30), R(40,820,900,30),
+  ],
+  windmills:[ {x:430,y:430,len:90,dir:1} ],
+  cogs:[ {x:840,y:620,r:80,spin:-1,surf:300,teeth:5,tooth:32} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:720,y1:560,x2:980,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 20 · Heart of the Maze — everything: cog, windmill, bounce, two traps, secret.
+LV.push({ name:'Heart of the Maze', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(360,330,40,220), R(1200,330,40,220),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30),
+  ],
+  cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ T(12), T(1), T(11), T(12), T(12) ] });
+
 LV.forEach((l,i)=>{ l.id=i+1; });
 return LV;
 })();
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},null,null,null,{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
-LEVELS.forEach((l,i)=>{ const s=SOLVED[i]; l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; });
+LEVELS.forEach((l,i)=>{ const s=SOLVED[i];
+  if(s){ l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; }
+  else { l.two=1; l.three=2; l.refScore=null; l.refSol=null; }   // unverified level
+});
 
 /* ============ persistence ============ */
 const SAVE_KEY='batphysics.v1';
@@ -941,26 +1089,31 @@ const Render=(()=>{
     const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
     g.addColorStop(0,col0); g.addColorStop(1,col1);
     ctx.fillStyle=g;
-    // jagged top edge
-    const steps=Math.max(3,Math.round(w/34));
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y+6);
-    for(let i=0;i<=steps;i++){
+    // sawtooth craggy top: alternating sharp peaks and valleys, randomised heights
+    const tooth=14*VIEW.s;                 // approx sawtooth width
+    const steps=Math.max(4,Math.round(w/tooth));
+    const amp=(h>60?16:9)*VIEW.s;          // bigger teeth on tall rocks
+    const edge=i=>{
       const fx=a.x+(w*i/steps);
-      const jut=(h>50? (rh(seed+i)*10-3) : (rh(seed+i)*5-1))*VIEW.s;
-      ctx.lineTo(fx, a.y - jut);
-    }
+      // peaks on even i, valleys on odd i, with per-tooth jitter
+      const base=(i%2===0)? -amp : amp*0.35;
+      const jit=(rh(seed+i*2.3)-0.5)*amp*0.9;
+      return {x:fx, y:a.y + base + jit};
+    };
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y+amp);
+    for(let i=0;i<=steps;i++){const p=edge(i);ctx.lineTo(p.x,p.y);}
     ctx.lineTo(a.x+w, a.y+h);
     ctx.lineTo(a.x, a.y+h);
     ctx.closePath(); ctx.fill();
-    // rim highlight along the jagged top
+    // rim highlight along the sawtooth
     ctx.strokeStyle=rim; ctx.globalAlpha=0.55; ctx.lineWidth=1.6*VIEW.s;
-    ctx.beginPath(); ctx.moveTo(a.x,a.y+6);
-    for(let i=0;i<=steps;i++){const fx=a.x+(w*i/steps);const jut=(h>50?(rh(seed+i)*10-3):(rh(seed+i)*5-1))*VIEW.s;ctx.lineTo(fx,a.y-jut);}
+    ctx.beginPath(); ctx.moveTo(a.x,a.y+amp);
+    for(let i=0;i<=steps;i++){const p=edge(i);ctx.lineTo(p.x,p.y);}
     ctx.stroke(); ctx.globalAlpha=1;
-    // a few speckle cracks
+    // speckle cracks
     ctx.fillStyle=rim; ctx.globalAlpha=0.18;
-    for(let i=0;i<Math.max(1,w/90);i++){ const sx=a.x+rh(seed+i*3.7)*w, sy=a.y+8+rh(seed+i*5.3)*(h-12); ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
+    for(let i=0;i<Math.max(1,w/90);i++){ const sx=a.x+rh(seed+i*3.7)*w, sy=a.y+10+rh(seed+i*5.3)*(h-14); ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
     ctx.globalAlpha=1;
   }
   function rock(L){
@@ -984,26 +1137,26 @@ const Render=(()=>{
   function cogs(L,w){
     (L.cogs||[]).forEach((c)=>{
       const p=toScreen(c.x,c.y); const R=c.r*VIEW.s;
-      const tooth=((c.tooth!=null?c.tooth:22))*VIEW.s;
-      const t=performance.now()/1000;
-      const ang=t*(c.spin||1)*1.1;
+      const tooth=((c.tooth!=null?c.tooth:30))*VIEW.s;
+      const nteeth=c.teeth||5;
+      const surf=(c.surf!=null?c.surf:320);
+      const ang=(performance.now()/1000)*(surf/Math.max(40,c.r))*(c.spin||1);
       ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang);
-      // big chunky teeth (trapezoids) that reach out to grab the ball
-      ctx.fillStyle='#525e80';
-      const teeth=10;
-      for(let i=0;i<teeth;i++){ ctx.rotate(Math.PI*2/teeth);
-        const wB=R*0.32, wT=R*0.20;
+      // few big teeth with wide gaps the ball can nestle into
+      ctx.fillStyle='#586484';
+      for(let i=0;i<nteeth;i++){ ctx.save(); ctx.rotate(i*Math.PI*2/nteeth);
+        const wB=R*0.30, wT=R*0.20;
         ctx.beginPath();
-        ctx.moveTo(-wB,-R); ctx.lineTo(-wT,-R-tooth);
-        ctx.lineTo(wT,-R-tooth); ctx.lineTo(wB,-R);
+        ctx.moveTo(-wB,-R+2); ctx.lineTo(-wT,-R-tooth);
+        ctx.lineTo(wT,-R-tooth); ctx.lineTo(wB,-R+2);
         ctx.closePath(); ctx.fill();
+        ctx.restore();
       }
       // body
       const g=ctx.createRadialGradient(0,0,R*0.2,0,0,R);
       g.addColorStop(0,'#2c3450'); g.addColorStop(1,'#1a2238');
       ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
       ctx.strokeStyle='#6678a6'; ctx.lineWidth=2.5*VIEW.s; ctx.stroke();
-      // inner ring + spokes
       ctx.strokeStyle='#5a6b96'; ctx.lineWidth=4*VIEW.s;
       for(let i=0;i<6;i++){ctx.rotate(Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,R*0.82);ctx.stroke();}
       ctx.fillStyle='#7e90c0'; ctx.beginPath();ctx.arc(0,0,R*0.18,0,7);ctx.fill();
@@ -1342,7 +1495,9 @@ const Game=(()=>{
     const probe=BP.makeWorld(L,null);
     const nt=(probe.toolDefs||[]).length;
     placements=[];
-    for(let i=0;i<nt;i++) placements.push({ x:560+i*150, y:470 });
+    for(let i=0;i<nt;i++) placements.push({ x:470+i*150, y:345 });
+    // if the player has a saved best layout for this level, load it on entry
+    if(!viewer){ const best=Store.bestPlacementFor(id); if(best&&best.length===nt) placements=best.map(p=>({x:p.x,y:p.y,h:p.h})); }
     preT=0;
     rebuild(); launched=false; canFire=true;
     document.getElementById('lvlName').innerHTML=
@@ -1398,7 +1553,7 @@ const Game=(()=>{
     const nextBtn=document.getElementById('rNext');
     const canNext = L.id<100 && (viewer || (won&&stars>=1) || Store.unlocked(L.id+1));
     nextBtn.style.display=canNext?'inline-block':'none';
-    if(won && !viewer){ Store.record(L.id,stars,sc, placements.map(p=>({x:Math.round(p.x),y:Math.round(p.y)}))); UI.refreshTitle(); }
+    if(won && !viewer){ Store.record(L.id,stars,sc, placements.map(p=>({x:Math.round(p.x),y:Math.round(p.y),h:p.h}))); UI.refreshTitle(); }
     r.classList.add('on');
   }
 
@@ -1504,7 +1659,7 @@ const Game=(()=>{
   function resumeGame(){ paused=false; }
   function arrowsToDefault(){
     const nt=nTools();
-    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:560+i*150, y:470 });
+    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:470+i*150, y:345 });
     launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
     rebuild();
   }
