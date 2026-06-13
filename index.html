@@ -88,6 +88,15 @@
     font-size:14px;letter-spacing:.5px;color:var(--txt);opacity:0;transition:opacity .25s;
     max-width:80vw;text-align:center;pointer-events:none;}
   #toast.on{opacity:1;}
+  /* tutorial tip card (shown on first appearance of a mechanic; dismissed on touch) */
+  #tip{position:absolute;left:50%;top:84px;transform:translateX(-50%);
+    display:none;z-index:20;pointer-events:none;max-width:74vw;}
+  #tip.on{display:block;animation:tipIn .3s ease;}
+  @keyframes tipIn{from{opacity:0;transform:translate(-50%,-8px);}to{opacity:1;transform:translateX(-50%);}}
+  .tipinner{background:#0c1326f0;border:1px solid #37e0c8;border-radius:14px;
+    padding:14px 20px;text-align:center;box-shadow:0 0 24px #37e0c844;}
+  #tipText{font-size:15px;line-height:1.4;color:var(--txt);letter-spacing:.3px;}
+  .tiphint{margin-top:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--glow);opacity:.8;}
   #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
 
   /* pause menu */
@@ -147,7 +156,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.5.4</div>
+  <div class="ver">v1.6.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -194,6 +203,7 @@
     </div>
   </div>
   <div id="toast"></div>
+  <div id="tip"><div class="tipinner"><span id="tipText"></span><div class="tiphint">tap to dismiss</div></div></div>
   <div id="result">
     <div class="card">
       <h2 id="rTitle" class="win">LEVEL COMPLETE!</h2>
@@ -221,6 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.6.0</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -359,6 +370,8 @@ function makeWorld(level0, placements) {
     portalCd: (level.portals || []).map(() => 0),
     warpN: (level.portals || []).map(() => 0),
     btnDown: (level.buttons || []).map(() => false),
+    wmAng: (level.windmills || []).map(m => m.ang0 || 0),   // current blade angle
+    wmVel: (level.windmills || []).map(() => 0),            // angular velocity (free-spin)
     events: [],          // for renderer: {t, kind, i}
   };
   // Unified arrow model: every arrow is positioned by the player (placements[]).
@@ -378,7 +391,7 @@ function makeWorld(level0, placements) {
   for (let i = 0; i < extra; i++) tools.push({ t: 'fix', h: 3 });
   w.toolDefs = tools;
   tools.forEach((a, i) => {
-    const pl = (placements && placements[i]) ? placements[i] : { x: 120, y: 190 + i * 92 };
+    const pl = (placements && placements[i]) ? placements[i] : { x: 560 + i * 150, y: 470 };
     if (a.t === 'osc') {
       w.arrows.push({ x: pl.x, y: pl.y, h: a.h1, h1: a.h1, h2: a.h2,
                       period: a.period || 2.4, kind: 'osc', armed: true, di: i });
@@ -458,44 +471,67 @@ function step(w) {
         hit = true;
       }
     }
-    // cogs: large spinning discs — solid round colliders with a tangential drag
+    // cogs: spinning discs with BIG teeth that grab the ball and carry it around
+    // the circumference. Collide at the tooth-tip radius; strong tangential drag.
     (L.cogs || []).forEach((c) => {
+      const tooth = (c.tooth != null ? c.tooth : 14);     // tooth length beyond body
       const dx = w.p.x - c.x, dy = w.p.y - c.y; const d = Math.hypot(dx, dy);
-      const min = BALLR + c.r;
+      const min = BALLR + c.r + tooth;
       if (d < min && d > 1e-6) {
         const nx = dx / d, ny = dy / d;
         w.p.x += nx * (min - d); w.p.y += ny * (min - d);
         const vn = w.v.x * nx + w.v.y * ny;
-        if (vn < 0) { const e = 0.35; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
-        // surface motion imparts tangential push (spin direction)
+        if (vn < 0) { const e = 0.2; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+        // teeth grab: pull the ball toward the rim tangential speed (carry-around)
         const spin = c.spin || 1;            // +1 cw, -1 ccw
         const tx = -ny * spin, ty = nx * spin;
         const surf = (c.surf != null ? c.surf : 360);
-        w.v.x += tx * surf * DT * 2.2; w.v.y += ty * surf * DT * 2.2;
+        // blend ball's tangential velocity toward the rim speed (grab)
+        const grab = 0.3;
+        const curT = w.v.x * tx + w.v.y * ty;
+        const dT = (surf - curT) * grab;
+        w.v.x += tx * dT; w.v.y += ty * dT;
         hit = true;
       }
     });
-    // windmills: 4 prongs (line segments) rotating about a hub; batting line colliders
+    // windmills: FREE-SPINNING rotors. Static until the ball pushes a blade, then
+    // they spin up from that impulse, carry angular momentum, and fling the ball.
     (L.windmills || []).forEach((m, mi) => {
-      const ang = (w.t * (m.speed || 1.4)) * (m.dir || 1);
+      const ang = w.wmAng[mi];
+      let bestHit = null;
       for (let k = 0; k < 4; k++) {
         const a2 = ang + k * Math.PI / 2;
         const ex = m.x + Math.cos(a2) * m.len, ey = m.y + Math.sin(a2) * m.len;
         const cp = closestOnSeg(w.p.x, w.p.y, m.x, m.y, ex, ey);
         const dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
-        if (d < BALLR + SEG_TH && d > 1e-6) {
-          const nx = dx / d, ny = dy / d;
-          w.p.x += nx * (BALLR + SEG_TH - d); w.p.y += ny * (BALLR + SEG_TH - d);
-          const vn = w.v.x * nx + w.v.y * ny;
-          if (vn < 0) { const e = 0.55; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
-          // prong sweep imparts motion proportional to radius
-          const rr = Math.hypot(cp.x - m.x, cp.y - m.y);
-          const tang = (m.speed || 1.4) * (m.dir || 1) * rr;
-          const tx = -(cp.y - m.y) / (rr || 1), ty = (cp.x - m.x) / (rr || 1);
-          w.v.x += tx * tang * DT * 3.0; w.v.y += ty * tang * DT * 3.0;
-          w.events.push({ t: w.t, kind: 'windmill', i: mi });
-          hit = true;
+        if (d < BALLR + SEG_TH && d > 1e-6) { bestHit = { cp, dx, dy, d }; break; }
+      }
+      if (bestHit) {
+        const { cp, dx, dy, d } = bestHit;
+        const nx = dx / d, ny = dy / d;
+        w.p.x += nx * (BALLR + SEG_TH - d); w.p.y += ny * (BALLR + SEG_TH - d);
+        // lever arm from hub to contact
+        const rvx = cp.x - m.x, rvy = cp.y - m.y;
+        const rr = Math.hypot(rvx, rvy) || 1;
+        // blade tangential direction at contact (for current rotation sign)
+        const tx = -rvy / rr, ty = rvx / rr;
+        // current blade surface velocity at contact
+        const bladeSpeed = w.wmVel[mi] * rr;
+        const bvx = tx * bladeSpeed, bvy = ty * bladeSpeed;
+        // relative velocity of ball vs blade along the normal
+        const rel = (w.v.x - bvx) * nx + (w.v.y - bvy) * ny;
+        if (rel < 0) {
+          const e = 0.45;
+          w.v.x -= (1 + e) * rel * nx; w.v.y -= (1 + e) * rel * ny;
+          // ball pushes the rotor: torque from the normal impulse component
+          const torque = (nx * tx + ny * ty);   // how aligned the push is with spin
+          const push = -rel;                     // magnitude of the inward hit
+          w.wmVel[mi] += torque * push / rr * 0.9;
         }
+        // the spinning blade also flings the ball along its tangential motion
+        w.v.x += bvx * DT * 6.0; w.v.y += bvy * DT * 6.0;
+        w.events.push({ t: w.t, kind: 'windmill', i: mi });
+        hit = true;
       }
     });
     for (const s of (L.segs || [])) {
@@ -581,6 +617,17 @@ function step(w) {
     } else { w.boost = 0; }
   }
 
+  // free-spinning windmills: advance blade angle by angular velocity, decay slowly
+  (L.windmills || []).forEach((m, mi) => {
+    w.wmAng[mi] += w.wmVel[mi] * DT;
+    // angular drag (free spin slowly winds down)
+    w.wmVel[mi] *= (1 - 1.1 * DT);
+    if (Math.abs(w.wmVel[mi]) < 0.02) w.wmVel[mi] = 0;
+    // clamp to avoid runaway
+    if (w.wmVel[mi] > 14) w.wmVel[mi] = 14;
+    if (w.wmVel[mi] < -14) w.wmVel[mi] = -14;
+  });
+
   // flippers (auto-fire, once per attempt)
   (L.flippers || []).forEach((f, i) => {
     w.flipAnim[i] = Math.max(0, w.flipAnim[i] - DT * 4);
@@ -622,12 +669,19 @@ function step(w) {
   const last = w.pts[w.pts.length - 1];
   if (!last || Math.hypot(w.p.x - last.x, w.p.y - last.y) > 18) w.pts.push({ x: w.p.x, y: w.p.y });
 
-  // win
-  const dw = Math.hypot(w.p.x - L.white.x, w.p.y - (L.white.y + 26));
-  if (dw < WIN_R) {
-    w.won = true; w.done = true;
-    w.pts.push({ x: L.white.x, y: L.white.y + 26 });
-    return;
+  // win: catch if any part of the ball overlaps any part of the hanging white bat.
+  // The bat spans vertically ~white.y-16 (body at ceiling) to ~white.y+54 (ear tips),
+  // ~24px half-width. Test ball-vs-rounded-box overlap so a graze still counts.
+  {
+    const bw = 24, byTop = L.white.y - 16, byBot = L.white.y + 54, cx = L.white.x;
+    const nxp = Math.max(cx - bw, Math.min(cx + bw, w.p.x));
+    const nyp = Math.max(byTop, Math.min(byBot, w.p.y));
+    const dw = Math.hypot(w.p.x - nxp, w.p.y - nyp);
+    if (dw < BALLR + 6) {
+      w.won = true; w.done = true;
+      w.pts.push({ x: L.white.x, y: L.white.y + 26 });
+      return;
+    }
   }
 
   // fail conditions
@@ -675,7 +729,7 @@ const exitLedge = (cx)=>R(cx-150,400,300,26);
 const startPerch = (cx)=>R(cx-130,400,260,22);
 
 // 1 · First Drop — fall to the floor, loft up to the exit ledge.
-LV.push({ name:'First Drop', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'First Drop', ch:1, tip:"The black bat drops the ball — it falls under gravity. Place ECHOS to fling it to the white bat. Each echo fires once.", preFlipped:true, noAutoTerrain:true,
   black:{x:230,y:360}, white:{x:1360,y:360}, launch:{vx:240,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(230), exitLedge(1360),
@@ -684,7 +738,7 @@ LV.push({ name:'First Drop', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12) ] });
 
 // 2 · Over the Gap — a pit between the landing floor and the exit.
-LV.push({ name:'Over the Gap', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Over the Gap', ch:1, tip:"Echos sling the ball along their aim. Enter an up-echo from one side to curve up and across a gap.", preFlipped:true, noAutoTerrain:true,
   black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:280,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(220), exitLedge(1380),
@@ -693,7 +747,7 @@ LV.push({ name:'Over the Gap', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1), T(1) ] });
 
 // 3 · Step Down — descending steps lead to a high exit.
-LV.push({ name:'Step Down', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Step Down', ch:1, tip:"Chain echos: each is single-use, so plan the whole route before you launch.", preFlipped:true, noAutoTerrain:true,
   black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(200), exitLedge(1400),
@@ -703,7 +757,7 @@ LV.push({ name:'Step Down', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1) ] });
 
 // 4 · Windmill Hall — three gentle windmills spin above the floor.
-LV.push({ name:'Windmill Hall', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Windmill Hall', ch:1, tip:"WINDMILLS are free-spinning. Hit a blade to spin it up — a spinning blade flings the ball.", preFlipped:true, noAutoTerrain:true,
   black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(220), exitLedge(1380),
@@ -715,7 +769,7 @@ LV.push({ name:'Windmill Hall', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1), T(1) ] });
 
 // 5 · The Cog — a spinning cog sits in the cavern floor.
-LV.push({ name:'The Cog', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'The Cog', ch:1, tip:"The COG's big teeth grab the ball and carry it around the rim. Ride it toward the exit.", preFlipped:true, noAutoTerrain:true,
   black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:260,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(210), exitLedge(1390),
@@ -725,7 +779,7 @@ LV.push({ name:'The Cog', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1), T(1) ] });
 
 // 6 · Rubber Cavern — bouncy pads on the floor.
-LV.push({ name:'Rubber Cavern', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Rubber Cavern', ch:1, tip:"BOUNCY pads ricochet the ball with extra spring. Use the bounce to gain height.", preFlipped:true, noAutoTerrain:true,
   black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(220), exitLedge(1380),
@@ -735,7 +789,7 @@ LV.push({ name:'Rubber Cavern', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1) ] });
 
 // 7 · Trapdoor — a button drops a two-flap trapdoor in the floor.
-LV.push({ name:'Trapdoor', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Trapdoor', ch:1, tip:"Hit the BUTTON to drop the two-flap TRAPDOOR, opening a path through the floor.", preFlipped:true, noAutoTerrain:true,
   black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(200), exitLedge(1400),
@@ -746,7 +800,7 @@ LV.push({ name:'Trapdoor', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1) ] });
 
 // 8 · Secret Hollow — a black pillar hides a secret passage (ignored by verifier).
-LV.push({ name:'Secret Hollow', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Secret Hollow', ch:1, tip:"Some black rock is a SECRET PASSAGE — the ball can pass straight through it.", preFlipped:true, noAutoTerrain:true,
   black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:280,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(210), exitLedge(1390),
@@ -757,7 +811,7 @@ LV.push({ name:'Secret Hollow', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1) ] });
 
 // 9 · Crag Run — dense crags and two windmills.
-LV.push({ name:'Crag Run', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'Crag Run', ch:1, tip:"Lots of crags and free-spinning windmills. Bank the ball off the terrain to the exit.", preFlipped:true, noAutoTerrain:true,
   black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(200), exitLedge(1400),
@@ -770,7 +824,7 @@ LV.push({ name:'Crag Run', ch:1, preFlipped:true, noAutoTerrain:true,
   tools:[ T(12), T(12), T(1) ] });
 
 // 10 · The Hanging Deep — finale: a cog, a bouncy pad, a button trapdoor, a secret.
-LV.push({ name:'The Hanging Deep', ch:1, preFlipped:true, noAutoTerrain:true,
+LV.push({ name:'The Hanging Deep', ch:1, tip:"Everything at once: cog, bounce, button and a secret. Find the line to the white bat.", preFlipped:true, noAutoTerrain:true,
   black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
   rects:[ ceil(), wallL(), wallR(),
     startPerch(200), exitLedge(1400),
@@ -790,7 +844,7 @@ return LV;
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1170,"y":300,"h":5}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":910,"y":570,"h":0},{"x":630,"y":430,"h":2},{"x":210,"y":430,"h":2},{"x":980,"y":430,"h":1}],"score":901,"two":741,"three":881,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":427,"y":710,"h":9},{"x":1060,"y":630,"h":11},{"x":1107,"y":148,"h":5}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":1174,"y":372,"h":10},{"x":1500,"y":740,"h":1},{"x":1234,"y":762,"h":4},{"x":304,"y":740,"h":2}],"score":806,"two":646,"three":786,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":134,"y":585,"h":3},{"x":571,"y":575,"h":10},{"x":888,"y":520,"h":0},{"x":290,"y":410,"h":1}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":1172,"y":92,"h":2},{"x":1280,"y":410,"h":11},{"x":872,"y":577,"h":0}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":1480,"y":520,"h":1},{"x":395,"y":587,"h":5},{"x":478,"y":502,"h":0}],"score":844,"two":684,"three":824,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":444,"y":480,"h":10},{"x":1060,"y":410,"h":1},{"x":412,"y":454,"h":1}],"score":900,"two":740,"three":880,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":1150,"y":630,"h":11},{"x":290,"y":410,"h":3},{"x":1437,"y":658,"h":9}],"score":879,"two":719,"three":859,"robust":1,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i]; l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; });
 
@@ -930,41 +984,51 @@ const Render=(()=>{
   function cogs(L,w){
     (L.cogs||[]).forEach((c)=>{
       const p=toScreen(c.x,c.y); const R=c.r*VIEW.s;
+      const tooth=((c.tooth!=null?c.tooth:22))*VIEW.s;
       const t=performance.now()/1000;
       const ang=t*(c.spin||1)*1.1;
       ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang);
-      // teeth
-      ctx.fillStyle='#46506e';
-      const teeth=12;
+      // big chunky teeth (trapezoids) that reach out to grab the ball
+      ctx.fillStyle='#525e80';
+      const teeth=10;
       for(let i=0;i<teeth;i++){ ctx.rotate(Math.PI*2/teeth);
-        ctx.fillRect(-6*VIEW.s, -R-7*VIEW.s, 12*VIEW.s, 12*VIEW.s); }
+        const wB=R*0.32, wT=R*0.20;
+        ctx.beginPath();
+        ctx.moveTo(-wB,-R); ctx.lineTo(-wT,-R-tooth);
+        ctx.lineTo(wT,-R-tooth); ctx.lineTo(wB,-R);
+        ctx.closePath(); ctx.fill();
+      }
       // body
       const g=ctx.createRadialGradient(0,0,R*0.2,0,0,R);
       g.addColorStop(0,'#2c3450'); g.addColorStop(1,'#1a2238');
       ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
-      ctx.strokeStyle='#6678a6'; ctx.lineWidth=2*VIEW.s; ctx.stroke();
-      // spokes
+      ctx.strokeStyle='#6678a6'; ctx.lineWidth=2.5*VIEW.s; ctx.stroke();
+      // inner ring + spokes
       ctx.strokeStyle='#5a6b96'; ctx.lineWidth=4*VIEW.s;
-      for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,R*0.8);ctx.stroke();}
-      ctx.fillStyle='#7e90c0'; ctx.beginPath();ctx.arc(0,0,R*0.16,0,7);ctx.fill();
+      for(let i=0;i<6;i++){ctx.rotate(Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,R*0.82);ctx.stroke();}
+      ctx.fillStyle='#7e90c0'; ctx.beginPath();ctx.arc(0,0,R*0.18,0,7);ctx.fill();
       ctx.restore();
     });
   }
   function windmills(L,w){
-    (L.windmills||[]).forEach((m)=>{
+    (L.windmills||[]).forEach((m,mi)=>{
       const p=toScreen(m.x,m.y); const len=m.len*VIEW.s;
-      const ang=(performance.now()/1000)*(m.speed||1.4)*(m.dir||1);
+      // free-spinning: use the live blade angle from the world
+      const ang=(w.wmAng?w.wmAng[mi]:0);
+      const spinning=Math.abs(w.wmVel?w.wmVel[mi]:0)>0.05;
       ctx.save(); ctx.translate(p.x,p.y);
-      // hub post
-      ctx.fillStyle='#3a2a4e'; ctx.beginPath();ctx.arc(0,0,9*VIEW.s,0,7);ctx.fill();
+      // mounting post + hub
+      ctx.fillStyle='#2a1f3a'; ctx.fillRect(-5*VIEW.s,0,10*VIEW.s,60*VIEW.s);
+      ctx.fillStyle='#3a2a4e'; ctx.beginPath();ctx.arc(0,0,11*VIEW.s,0,7);ctx.fill();
       for(let k=0;k<4;k++){
         const a2=ang+k*Math.PI/2;
         ctx.save(); ctx.rotate(a2);
         const g=ctx.createLinearGradient(0,0,len,0);
-        g.addColorStop(0,'#9b7bd6'); g.addColorStop(1,'#5f49a8');
+        g.addColorStop(0, spinning?'#b79bff':'#9b7bd6'); g.addColorStop(1,'#5f49a8');
         ctx.fillStyle=g;
-        ctx.beginPath(); ctx.moveTo(0,-6*VIEW.s); ctx.lineTo(len,-3*VIEW.s);
-        ctx.lineTo(len,3*VIEW.s); ctx.lineTo(0,6*VIEW.s); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0,-7*VIEW.s); ctx.lineTo(len,-4*VIEW.s);
+        ctx.lineTo(len,4*VIEW.s); ctx.lineTo(0,7*VIEW.s); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='#cbb6f5'; ctx.globalAlpha=0.5; ctx.lineWidth=1.2*VIEW.s; ctx.stroke(); ctx.globalAlpha=1;
         ctx.restore();
       }
       ctx.fillStyle='#c9b6f0'; ctx.beginPath();ctx.arc(0,0,5*VIEW.s,0,7);ctx.fill();
@@ -1278,7 +1342,7 @@ const Game=(()=>{
     const probe=BP.makeWorld(L,null);
     const nt=(probe.toolDefs||[]).length;
     placements=[];
-    for(let i=0;i<nt;i++) placements.push({ x:120, y:190+i*92 });
+    for(let i=0;i<nt;i++) placements.push({ x:560+i*150, y:470 });
     preT=0;
     rebuild(); launched=false; canFire=true;
     document.getElementById('lvlName').innerHTML=
@@ -1287,6 +1351,10 @@ const Game=(()=>{
     document.getElementById('result').classList.remove('on');
     document.getElementById('viewerTag').style.display=viewer?'block':'none';
     document.getElementById('viewerBadge').style.display=viewer?'flex':'none';
+    // tutorial tip: show the level's intro message; dismissed on first touch
+    const tipEl=document.getElementById('tip');
+    if(L.tip){ document.getElementById('tipText').textContent=L.tip; tipEl.classList.add('on'); }
+    else tipEl.classList.remove('on');
     UI.go('game'); loop();
   }
   function rebuild(){ w=BP.makeWorld(L,placements); if(!launched&&w) w.t=preT; }
@@ -1347,6 +1415,9 @@ const Game=(()=>{
   // input
   function onDown(cx,cy){
     if(paused) return;
+    // a tutorial tip showing? first touch just dismisses it.
+    const tipEl=document.getElementById('tip');
+    if(tipEl && tipEl.classList.contains('on')){ tipEl.classList.remove('on'); return; }
     // after release: a tap anywhere resets the ball and re-enables dragging
     if(launched){ retry(); return; }
     const wp=toWorld(cx,cy);
@@ -1433,7 +1504,7 @@ const Game=(()=>{
   function resumeGame(){ paused=false; }
   function arrowsToDefault(){
     const nt=nTools();
-    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:120, y:190+i*92 });
+    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:560+i*150, y:470 });
     launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
     rebuild();
   }
