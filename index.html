@@ -140,7 +140,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.3.0</div>
+  <div class="ver">v1.4.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -201,8 +201,8 @@
     <div class="pausebox">
       <h2 class="ptitle">– PAUSED –</h2>
       <button class="pbtn" onclick="UI.resume()">RESUME GAME</button>
-      <button class="pbtn" onclick="UI.arrowsDefault()">ARROWS TO DEFAULT</button>
-      <button class="pbtn" id="pbBest" onclick="UI.arrowsBest()">ARROWS TO MY BEST</button>
+      <button class="pbtn" onclick="UI.arrowsDefault()">ECHOS TO DEFAULT</button>
+      <button class="pbtn" id="pbBest" onclick="UI.arrowsBest()">ECHOS TO MY BEST</button>
       <button class="pbtn" onclick="UI.quitToSelect()">QUIT</button>
     </div>
   </div>
@@ -1375,53 +1375,78 @@ const Render=(()=>{
     }
     ctx.restore();
   }
-  function arrows(L,w,launched){
-    const VS=1.0;                       // disc now exactly matches the physics trigger radius
+  function echos(L,w,launched){
     for(const a of w.arrows){
       const p=toScreen(a.x,a.y);
       const h=BP.arrowAngleHour(a,w.t);
       const d=hr(h); const ang=Math.atan2(d.y,d.x);
       ctx.save();ctx.translate(p.x,p.y);
-      const R=BP.ARROW_R*VIEW.s*VS;
+      const R=BP.ARROW_R*VIEW.s;
       const spent=!a.armed;
       // draggable hint ring (pulsing) before launch
-      if(a.kind==='drag' && !launched){
+      if(!launched){
         const pulse=0.5+0.5*Math.sin(performance.now()/350);
-        ctx.strokeStyle='rgba(55,224,200,'+(0.25+0.4*pulse)+')';
+        ctx.strokeStyle='rgba(55,224,200,'+(0.18+0.32*pulse)+')';
         ctx.lineWidth=3*VIEW.s; ctx.setLineDash([6*VIEW.s,7*VIEW.s]);
         ctx.beginPath();ctx.arc(0,0,R+10*VIEW.s,0,7);ctx.stroke();
         ctx.setLineDash([]);
       }
-      // disc
+      // disc base
       const g=ctx.createRadialGradient(0,0,2,0,0,R);
-      if(a.kind==='drag'){g.addColorStop(0,'#fff');g.addColorStop(1,'#cfe0ff');}
-      else if(a.kind==='osc'){g.addColorStop(0,'#fff');g.addColorStop(1,'#ffd9a0');}
-      else {g.addColorStop(0,'#243154');g.addColorStop(1,'#0c1326');}
-      ctx.globalAlpha=spent?0.35:1;
+      if(a.kind==='osc'){g.addColorStop(0,'#10202e');g.addColorStop(1,'#0a161f');}
+      else {g.addColorStop(0,'#10202e');g.addColorStop(1,'#0a1622');}
+      ctx.globalAlpha=spent?0.4:1;
       ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
-      ctx.lineWidth=2.5*VIEW.s; ctx.strokeStyle=a.kind==='fix'?'#5878ad':'#37e0c8'; ctx.stroke();
-      // arrowhead
+      const ring=a.kind==='osc'?'#ffb86b':'#37e0c8';
+      ctx.lineWidth=2.5*VIEW.s; ctx.strokeStyle=ring; ctx.globalAlpha=spent?0.4:0.9; ctx.stroke();
+      ctx.globalAlpha=spent?0.4:1;
+      // echo waves: 3 concentric arcs fanning out in the travel direction
       ctx.rotate(ang);
-      const col=a.kind==='fix'?'#dff4ff':(a.kind==='osc'?'#a9651b':'#13284a');
-      ctx.fillStyle=col;
-      const s=R*0.6;
-      ctx.beginPath();ctx.moveTo(s,0);ctx.lineTo(-s*0.5,s*0.7);ctx.lineTo(-s*0.5,-s*0.7);ctx.closePath();ctx.fill();
-      ctx.fillRect(-s*0.72,-s*0.24,s*0.55,s*0.48);
-      ctx.restore();
-      if(a.kind==='osc'){ // sweep guides
-        ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=.25;ctx.strokeStyle='#ffd9a0';ctx.lineWidth=2*VIEW.s;
-        [a.h1,a.h2].forEach(hh=>{const dd=hr(hh);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(dd.x*R*1.4,dd.y*R*1.4);ctx.stroke();});
-        ctx.restore();
+      const waveCol=a.kind==='osc'?'#ffcf8a':'#7af2e0';
+      // animate the waves rippling outward
+      const t=performance.now()/600;
+      for(let k=0;k<3;k++){
+        const phase=((t+k/3)%1);              // 0..1 expanding
+        const rad=(0.35+phase*0.95)*R;
+        ctx.globalAlpha=(spent?0.4:1)*(1-phase)*0.9;
+        ctx.lineWidth=(3.2-1.4*phase)*VIEW.s;
+        ctx.strokeStyle=waveCol;
+        ctx.beginPath();
+        // arc opening forward (a ~120° fan facing +x)
+        ctx.arc(-R*0.3, 0, rad, -Math.PI/3, Math.PI/3);
+        ctx.stroke();
       }
+      // small emitter dot at the focus
+      ctx.globalAlpha=spent?0.4:1;
+      ctx.fillStyle=waveCol;
+      ctx.beginPath();ctx.arc(-R*0.42,0,3.2*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
     }
   }
-  function bat(x,y,white,label){
+  function bat(x,y,white,label,wing){
     const p=toScreen(x,y); const s=VIEW.s*1.05;
+    const wg=Math.max(0,Math.min(1,wing||0));   // 0 = folded, 1 = wings out
     ctx.save();ctx.translate(p.x,p.y-30*VIEW.s);
     const body=white?'#dff4ff':'#16243e', ear=white?'#bfe0f5':'#0e1830';
-    // tail
-    ctx.strokeStyle=body;ctx.lineWidth=6*s;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(14*s,18*s);ctx.quadraticCurveTo(34*s,24*s,30*s,4*s);ctx.stroke();
+    const wingCol=white?'#cfe9fb':'#1d2c48';
+    // wings (drawn behind body) — membrane with finger struts, scale/spread by wg
+    if(wg>0.02){
+      ctx.fillStyle=wingCol; ctx.globalAlpha=0.96;
+      for(const dir of [-1,1]){
+        ctx.save(); ctx.scale(dir,1);
+        const sp=wg;                 // spread factor
+        ctx.beginPath();
+        ctx.moveTo(10*s, -2*s);
+        ctx.quadraticCurveTo((20+40*sp)*s, (-18-10*sp)*s, (44+30*sp)*s, (2-6*sp)*s);
+        // scalloped lower edge (bat membrane)
+        ctx.quadraticCurveTo((40+24*sp)*s, (10)*s, (34+20*sp)*s, (4)*s);
+        ctx.quadraticCurveTo((30+14*sp)*s, (16)*s, (24+12*sp)*s, (8)*s);
+        ctx.quadraticCurveTo((20+6*sp)*s, (20)*s, (14)*s, (12)*s);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
+    }
     // body
     ctx.fillStyle=body;
     ctx.beginPath();ctx.ellipse(0,8*s,18*s,20*s,0,0,7);ctx.fill();
@@ -1431,10 +1456,18 @@ const Render=(()=>{
     ctx.fillStyle=ear;
     ctx.beginPath();ctx.moveTo(-13*s,-20*s);ctx.lineTo(-20*s,-46*s);ctx.lineTo(-4*s,-26*s);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(13*s,-20*s);ctx.lineTo(20*s,-46*s);ctx.lineTo(4*s,-26*s);ctx.closePath();ctx.fill();
-    // eyes
-    ctx.fillStyle=white?'#16243e':'#dff4ff';
-    ctx.beginPath();ctx.arc(-6*s,-13*s,4.4*s,0,7);ctx.arc(6*s,-13*s,4.4*s,0,7);ctx.fill();
-    ctx.fillStyle='#ff5b6e';ctx.beginPath();ctx.arc(0,-6*s,2.6*s,0,7);ctx.fill();
+    // eyes (whites/darks) with pupils
+    const eyeFill=white?'#f3fbff':'#dff4ff';
+    ctx.fillStyle=eyeFill;
+    ctx.beginPath();ctx.arc(-6*s,-13*s,4.6*s,0,7);ctx.arc(6*s,-13*s,4.6*s,0,7);ctx.fill();
+    // pupils: black for the dark bat, pink-red for the albino white bat
+    ctx.fillStyle=white?'#ff5b7a':'#0a0f1c';
+    ctx.beginPath();ctx.arc(-6*s,-13*s,2.3*s,0,7);ctx.arc(6*s,-13*s,2.3*s,0,7);ctx.fill();
+    // tiny eye glint
+    ctx.fillStyle='#ffffffcc';
+    ctx.beginPath();ctx.arc(-7*s,-14*s,0.9*s,0,7);ctx.arc(5*s,-14*s,0.9*s,0,7);ctx.fill();
+    // nose
+    ctx.fillStyle=white?'#ff8fa3':'#2a3b5e';ctx.beginPath();ctx.arc(0,-6*s,2.0*s,0,7);ctx.fill();
     ctx.restore();
     if(label){
       ctx.fillStyle='#cfe6ff';ctx.font=(13*VIEW.s|0)+'px Trebuchet MS';ctx.textAlign='center';
@@ -1453,7 +1486,7 @@ const Render=(()=>{
     ctx.save();
     ctx.strokeStyle=col;
     ctx.lineWidth=(win?8:4)*VIEW.s;
-    ctx.setLineDash(win?[3*VIEW.s,11*VIEW.s]:[2*VIEW.s,10*VIEW.s]);
+    ctx.setLineDash(win?[14*VIEW.s,12*VIEW.s]:[2*VIEW.s,10*VIEW.s]);
     ctx.lineCap='round'; ctx.lineJoin='round';
     if(win){ ctx.shadowColor=col; ctx.shadowBlur=10*VIEW.s; }
     ctx.beginPath();
@@ -1476,17 +1509,18 @@ const Render=(()=>{
   function ball(p,spin){
     const s=toScreen(p.x,p.y);const R=BP.BALLR*VIEW.s;
     ctx.save();
-    ctx.shadowColor='#ff6b6b';ctx.shadowBlur=14*VIEW.s;
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,R,0,7);ctx.fill();
+    ctx.shadowColor='#ffcf33';ctx.shadowBlur=12*VIEW.s;
+    // base disc (yellow)
+    ctx.fillStyle='#ffd23d';ctx.beginPath();ctx.arc(s.x,s.y,R,0,7);ctx.fill();
     ctx.shadowBlur=0;
-    // spinning quarters
+    // spinning black quarters
     ctx.translate(s.x,s.y); ctx.rotate(spin||0);
-    ctx.fillStyle='#ff4d5e';
+    ctx.fillStyle='#111418';
     ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,0,Math.PI/2);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,Math.PI,Math.PI*1.5);ctx.closePath();ctx.fill();
     // rim
     ctx.rotate(-(spin||0));
-    ctx.strokeStyle='#ffffff66';ctx.lineWidth=1.5*VIEW.s;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+    ctx.strokeStyle='#00000055';ctx.lineWidth=1.5*VIEW.s;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
     ctx.restore();
   }
   function frame(w,opts){
@@ -1501,9 +1535,9 @@ const Render=(()=>{
       // in-flight breadcrumb (faint blue)
       trail(w.pts, '#5fd0ff66', false, 1);
     }
-    arrows(L,w,opts.launched);
-    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to roll':'');
-    bat(L.white.x,L.white.y,true,'');
+    echos(L,w,opts.launched);
+    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to roll':'', opts.blackWing||0);
+    bat(L.white.x,L.white.y,true,'', opts.whiteWing||0);
     if(opts.launched && !w.won) ball(w.p, w.spin);
   }
   return {frame, _ch:1};
@@ -1517,6 +1551,7 @@ const Game=(()=>{
   let viewer=false, autoPlacing=false, preT=0;
   let resolved=false, paused=false;
   let pathProg=1, winAnim=0, winScore=0;
+  let blackWing=0, whiteWing=0;
 
   function loadLevel(id, asViewer){
     viewer=!!asViewer; resolved=false;
@@ -1541,10 +1576,11 @@ const Game=(()=>{
   function fire(){
     if(launched||!canFire) return;
     launched=true; canFire=false; dragIdx=-1;
+    blackWing=1;   // wings snap out as it launches
     // freeze oscillator phase at the moment of release: keep current w.t as the launch offset
   }
   function retry(){ launched=false; canFire=true; resolved=false;
-    preT=0; pathProg=1; winAnim=0;
+    preT=0; pathProg=1; winAnim=0; blackWing=0; whiteWing=0;
     document.getElementById('result').classList.remove('on');
     document.getElementById('scoreNum').textContent='999';
     rebuild(); }
@@ -1571,7 +1607,7 @@ const Game=(()=>{
       document.getElementById('rHint').textContent= stars<3 ? 'Shorter path = higher score. Find a tighter route for ★★★.' : 'Perfect route!';
     } else {
       document.getElementById('rScore').innerHTML='';
-      document.getElementById('rHint').textContent='Reposition your arrow(s) and try again.';
+      document.getElementById('rHint').textContent='Reposition your echo(s) and try again.';
     }
     const nextBtn=document.getElementById('rNext');
     const canNext = L.id<100 && (viewer || (won&&stars>=1) || Store.unlocked(L.id+1));
@@ -1600,7 +1636,7 @@ const Game=(()=>{
     let best=-1,bd=1e9;
     for(let i=0;i<nTools();i++){
       const dd=Math.hypot(wp.x-placements[i].x,wp.y-placements[i].y);
-      if(dd<bd&&dd<120){bd=dd;best=i;}
+      if(dd<bd&&dd<150){bd=dd;best=i;}
     }
     if(best>=0){ dragIdx=best; dragOff={x:placements[best].x-wp.x,y:placements[best].y-wp.y}; return; }
     // otherwise: tap on/near the black bat rolls the ball
@@ -1611,7 +1647,11 @@ const Game=(()=>{
     if(dragIdx<0) return;
     const wp=toWorld(cx,cy);
     let nx=wp.x+dragOff.x, ny=wp.y+dragOff.y;
-    nx=Math.max(60,Math.min(1540,nx)); ny=Math.max(120,Math.min(806,ny));
+    // allow placement right up to (and slightly past) the world edges, keeping
+    // only a few px of the echo on-screen so it can still be grabbed back.
+    const m = BP.ARROW_R - 8;            // how far the center may go past the edge
+    nx=Math.max(-m, Math.min(BP.W+m, nx));
+    ny=Math.max(-m, Math.min(BP.H+m, ny));
     placements[dragIdx]={x:nx,y:ny}; rebuild();
   }
   function onUp(){ dragIdx=-1; }
@@ -1624,7 +1664,7 @@ const Game=(()=>{
       raf=requestAnimationFrame(tick);
       let dt=(ts-last)/1000; last=ts;
       if(dt>0.1)dt=0.1;                 // clamp after tab-switch
-      if(paused){ Render.frame(w,{launched,canFire:false,showTrail:launched,pathProg}); return; }
+      if(paused){ Render.frame(w,{launched,canFire:false,showTrail:launched,pathProg,blackWing,whiteWing}); return; }
       if(launched&&!w.done){
         acc+=dt;
         let guard=0;
@@ -1644,7 +1684,7 @@ const Game=(()=>{
       // win animation: reveal the green path, then count the score down
       if(w && w.won && !resolved){
         winAnim+=dt;
-        const REVEAL=1.1, COUNT=1.0;
+        const REVEAL=1.7, COUNT=1.0;
         if(winAnim<=REVEAL){
           pathProg=winAnim/REVEAL;
           document.getElementById('scoreNum').textContent='999';
@@ -1656,7 +1696,15 @@ const Game=(()=>{
           if(k>=1 && !resolved) finish();
         }
       }
-      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched,pathProg});
+      // wing animation
+      // black bat: wings snap out on launch, fold back over ~0.6s
+      if(launched){ blackWing = Math.max(0, blackWing - dt/0.6); }
+      else { blackWing = 0; }
+      // white bat: wings spread open when it receives the ball (win), and stay
+      if(w && w.won){ whiteWing = Math.min(1, whiteWing + dt/0.3); }
+      else { whiteWing = 0; }
+
+      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched,pathProg,blackWing,whiteWing});
     };
     raf=requestAnimationFrame(tick);
   }
@@ -1773,9 +1821,9 @@ const UI=(()=>{
       document.getElementById('pause').classList.add('on');
     },
     resume(){ document.getElementById('pause').classList.remove('on'); Game.resumeGame(); },
-    arrowsDefault(){ Game.arrowsToDefault(); UI.resume(); UI.toast('Arrows reset to default'); },
+    arrowsDefault(){ Game.arrowsToDefault(); UI.resume(); UI.toast('Echos reset to default'); },
     arrowsBest(){
-      if(Game.arrowsToBest()){ UI.resume(); UI.toast('Arrows set to your best layout'); }
+      if(Game.arrowsToBest()){ UI.resume(); UI.toast('Echos set to your best layout'); }
       else { UI.toast('No best layout saved yet — clear the level first'); }
     },
     toggleFullscreen(){
