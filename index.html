@@ -156,7 +156,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.7.0</div>
+  <div class="ver">v1.8.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -231,7 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.7.0</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.8.0</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -887,12 +887,11 @@ LV.push({ name:'The Drop Shaft', ch:2, preFlipped:true, noAutoTerrain:true,
 LV.push({ name:'Trapfall', ch:2, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
   black:{x:200,y:380}, white:{x:1380,y:760}, launch:{vx:300,vy:0},
   rects:[ ceil(), wallL(), wallR(),
-    R(0,560,1180,30),                  // upper floor the ball rolls along
-    R(1180,560,420,30),                // continues, with a trap gap below white
-    R(1300,820,300,30),                // lower floor where the white bat sits
-    R(40,820,1000,30),
+    R(0,560,1180,30),                  // upper floor (gap at 1180-1420 = trapdoor)
+    R(1420,560,180,30),                // upper floor resumes after the trap gap
+    R(1240,820,360,30),                // lower floor where the white bat lands
   ],
-  buttons:[ {x:300,y:546,door:0} ],     // on the upper floor (reachable by roll)
+  buttons:[ {x:300,y:546,door:0} ],     // on the upper floor, reachable by rolling
   doors:[ {x1:1180,y1:560,x2:1420,y2:560,trig:{k:'button'},flap:true} ],
   tools:[ T(12), T(1), T(12) ] });
 
@@ -989,7 +988,7 @@ return LV;
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},null,null,null,{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},null,null,{"id":13,"ok":true,"sol":[{"x":120,"y":200,"h":12},{"x":120,"y":300,"h":12},{"x":120,"y":400,"h":12}],"score":876,"two":716,"three":856,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i];
   if(s){ l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; }
@@ -1071,65 +1070,134 @@ const Render=(()=>{
   function bg(){
     const P=pal();
     const AW = VIEW.W, AH = VIEW.H;
-    const g=ctx.createLinearGradient(0,VIEW.oy,0,VIEW.oy+BP.H*VIEW.s);
-    g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
     ctx.fillStyle='#05070d'; ctx.fillRect(-10,-10,AW+20,AH+20);
+    // playable gradient fills only BELOW the ceiling line; everything above is black
+    const top=toScreen(0,CEIL_Y), p=toScreen(0,0);
+    const botY=toScreen(0,BP.H).y;
+    const g=ctx.createLinearGradient(0,top.y,0,botY);
+    g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
     ctx.fillStyle=g;
-    const p=toScreen(0,0);
-    ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
+    ctx.fillRect(p.x, top.y, BP.W*VIEW.s, botY-top.y);
     // sun/moon glow pool behind
     const cx=toScreen(BP.W/2,BP.H*0.74);
     const rg=ctx.createRadialGradient(cx.x,cx.y,10,cx.x,cx.y,560*VIEW.s);
     rg.addColorStop(0,P.glow+'66'); rg.addColorStop(.5,P.glow+'22'); rg.addColorStop(1,P.glow+'00');
-    ctx.fillStyle=rg; ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
+    ctx.fillStyle=rg; ctx.fillRect(p.x, top.y, BP.W*VIEW.s, botY-top.y);
   }
   // small deterministic hash so each rock's jaggedness is stable frame-to-frame
   function rh(n){ const x=Math.sin(n*127.1)*43758.5; return x-Math.floor(x); }
+  // CEIL/floor reference (world): ceiling slab bottom, floor top
+  const CEIL_Y = 320;     // matches levels.js CEIL
+  // a craggy run of points along a horizontal edge (sawtooth, jittered)
+  function craggyEdge(x0,x1,baseY,amp,seed,down){
+    const pts=[]; const tooth=16*VIEW.s; const span=x1-x0;
+    const steps=Math.max(3,Math.round(span/tooth));
+    for(let i=0;i<=steps;i++){
+      const fx=x0+span*i/steps;
+      const peak=(i%2===0)?-amp:amp*0.4;
+      const jit=(rh(seed+i*2.3)-0.5)*amp;
+      pts.push({x:fx, y:baseY + (down?1:-1)*(peak+jit)});
+    }
+    return pts;
+  }
+  function fillBlackBody(a,w,h,topPts){
+    // fill a rock as solid cave-black with a craggy edge given by topPts (its open side)
+    ctx.fillStyle='#05070d';
+    ctx.beginPath();
+    ctx.moveTo(topPts[0].x, topPts[0].y);
+    for(const p of topPts) ctx.lineTo(p.x,p.y);
+    ctx.lineTo(a.x+w, a.y+h+40); ctx.lineTo(a.x, a.y+h+40);
+    ctx.closePath(); ctx.fill();
+  }
   function rockShape(a,w,h,seed,col0,col1,rim){
     const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
     g.addColorStop(0,col0); g.addColorStop(1,col1);
     ctx.fillStyle=g;
-    // sawtooth craggy top: alternating sharp peaks and valleys, randomised heights
-    const tooth=14*VIEW.s;                 // approx sawtooth width
-    const steps=Math.max(4,Math.round(w/tooth));
-    const amp=(h>60?16:9)*VIEW.s;          // bigger teeth on tall rocks
-    const edge=i=>{
-      const fx=a.x+(w*i/steps);
-      // peaks on even i, valleys on odd i, with per-tooth jitter
-      const base=(i%2===0)? -amp : amp*0.35;
-      const jit=(rh(seed+i*2.3)-0.5)*amp*0.9;
-      return {x:fx, y:a.y + base + jit};
-    };
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y+amp);
-    for(let i=0;i<=steps;i++){const p=edge(i);ctx.lineTo(p.x,p.y);}
-    ctx.lineTo(a.x+w, a.y+h);
-    ctx.lineTo(a.x, a.y+h);
-    ctx.closePath(); ctx.fill();
-    // rim highlight along the sawtooth
+    const amp=(h>60?16:9)*VIEW.s;
+    const top=craggyEdge(a.x,a.x+w,a.y,amp,seed,false);
+    ctx.beginPath(); ctx.moveTo(top[0].x,top[0].y);
+    for(const p of top) ctx.lineTo(p.x,p.y);
+    ctx.lineTo(a.x+w,a.y+h); ctx.lineTo(a.x,a.y+h); ctx.closePath(); ctx.fill();
     ctx.strokeStyle=rim; ctx.globalAlpha=0.55; ctx.lineWidth=1.6*VIEW.s;
-    ctx.beginPath(); ctx.moveTo(a.x,a.y+amp);
-    for(let i=0;i<=steps;i++){const p=edge(i);ctx.lineTo(p.x,p.y);}
-    ctx.stroke(); ctx.globalAlpha=1;
-    // speckle cracks
-    ctx.fillStyle=rim; ctx.globalAlpha=0.18;
-    for(let i=0;i<Math.max(1,w/90);i++){ const sx=a.x+rh(seed+i*3.7)*w, sy=a.y+10+rh(seed+i*5.3)*(h-14); ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
+    ctx.beginPath(); ctx.moveTo(top[0].x,top[0].y); for(const p of top)ctx.lineTo(p.x,p.y); ctx.stroke();
     ctx.globalAlpha=1;
+    ctx.fillStyle=rim; ctx.globalAlpha=0.18;
+    for(let i=0;i<Math.max(1,w/90);i++){const sx=a.x+rh(seed+i*3.7)*w,sy=a.y+10+rh(seed+i*5.3)*(h-14);ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
+    ctx.globalAlpha=1;
+  }
+  // a downward stalactite / upward stalagmite: triangular-ish, uneven, joined flat to base
+  function spike(cx, baseY, halfW, len, seed, down, col0,col1,rim){
+    const dir=down?1:-1;
+    const tipx=cx+(rh(seed)-0.5)*halfW*0.5;
+    const tipy=baseY+dir*len;
+    const g=down? ctx.createLinearGradient(0,baseY,0,tipy) : ctx.createLinearGradient(0,tipy,0,baseY);
+    g.addColorStop(down?0:1,col0); g.addColorStop(down?1:0,col1);
+    ctx.fillStyle=g;
+    // uneven sides: a couple of jagged steps down each edge
+    ctx.beginPath();
+    ctx.moveTo(cx-halfW, baseY);
+    // left edge to tip
+    ctx.lineTo(cx-halfW*0.55+(rh(seed+1)-0.5)*halfW*0.4, baseY+dir*len*0.45);
+    ctx.lineTo(tipx, tipy);
+    ctx.lineTo(cx+halfW*0.55+(rh(seed+2)-0.5)*halfW*0.4, baseY+dir*len*0.45);
+    ctx.lineTo(cx+halfW, baseY);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=rim; ctx.globalAlpha=0.5; ctx.lineWidth=1.4*VIEW.s; ctx.stroke(); ctx.globalAlpha=1;
   }
   function rock(L){
     const P=pal();
     ctx.save();
+    const sw=BP.W*VIEW.s;
     for(let ri=0;ri<(L.rects||[]).length;ri++){
       const r=L.rects[ri];
+      if(r[0]<-30||r[0]>1575) continue;                 // skip side frame walls
       const a=toScreen(r[0],r[1]);
       const w=r[2]*VIEW.s,h=r[3]*VIEW.s;
-      if(r[1]<-50||r[0]<-40||r[0]>1570) continue; // skip frame walls visually
+      const topW=r[1], botW=r[1]+r[3];                  // world top/bottom
+      const isCeiling = topW <= 0;                      // ceiling slab
+      const isFloor = botW >= 880;                      // floor slab (near world bottom)
+      const isStalactite = Math.abs(topW-CEIL_Y) < 16 && r[3] > 80; // hangs from ceiling
+      const isStalagmite = botW>=880 ? false : (Math.abs(botW-820)<60 || r[3]>120 && topW>460);
+
+      if(isCeiling){
+        // solid black ceiling; craggy stalactite-style bottom edge at its lower face
+        const by=toScreen(0,r[1]+r[3]).y;
+        ctx.fillStyle='#05070d';
+        const edge=craggyEdge(a.x,a.x+w, by, 14*VIEW.s, ri*7+3, true);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y-10);
+        ctx.lineTo(a.x+w,a.y-10);
+        ctx.lineTo(edge[edge.length-1].x, edge[edge.length-1].y);
+        for(let i=edge.length-1;i>=0;i--) ctx.lineTo(edge[i].x,edge[i].y);
+        ctx.closePath(); ctx.fill();
+        // a few hanging stalactites along the ceiling for cave feel
+        ctx.save();
+        for(let k=0;k<Math.round(w/260);k++){
+          const cx=a.x+ (0.18+0.64*rh(ri*5+k))*w;
+          spike(cx, by, (10+rh(ri+k)*8)*VIEW.s, (24+rh(ri*3+k)*46)*VIEW.s, ri*13+k, true, P.rock[0],P.rock[1],P.rim);
+        }
+        ctx.restore();
+        continue;
+      }
+      if(isFloor){
+        // solid black floor; craggy top edge
+        ctx.fillStyle='#05070d';
+        const edge=craggyEdge(a.x,a.x+w, a.y, 14*VIEW.s, ri*7+9, false);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y+h+20);
+        for(const p of edge) ctx.lineTo(p.x,p.y);
+        ctx.lineTo(a.x+w,a.y+h+20); ctx.closePath(); ctx.fill();
+        continue;
+      }
+      if(isStalactite){
+        // a hanging pillar = stalactite: joined flat at ceiling top, triangular tip
+        spike(a.x+w/2, a.y, w*0.6, h, ri*11+1, true, P.rock[0],P.rock[1],P.rim);
+        continue;
+      }
+      // default rocky shelf/crag with craggy top
       rockShape(a,w,h,ri*9+1,P.rock[0],P.rock[1],P.rim);
     }
-    // secret passages: drawn to look like solid rock, but the ball passes through.
+    // secret passages: look like solid rock, ball passes through
     for(let si=0;si<(L.secrets||[]).length;si++){
-      const r=L.secrets[si];
-      const a=toScreen(r[0],r[1]);
+      const r=L.secrets[si]; const a=toScreen(r[0],r[1]);
       rockShape(a,r[2]*VIEW.s,r[3]*VIEW.s,800+si*13,P.rock[0],P.rock[1],P.rim);
     }
     ctx.restore();
@@ -1355,11 +1423,23 @@ const Render=(()=>{
   function bat(x,y,white,label,wing){
     const p=toScreen(x,y); const s=VIEW.s*1.05;
     const wg=Math.max(0,Math.min(1,wing||0));   // 0 = folded, 1 = wings out
+    // rock mount: a small craggy knob the bat grips, drawn above its rump so the bat
+    // never looks like it's floating (whether at the ceiling or out in open space).
+    const rumpY = p.y - 40*VIEW.s + 28*(VIEW.s*1.05) - 28*s;  // approx top of bat
+    ctx.save();
+    ctx.fillStyle='#10141c';
+    const mw=26*s;
+    ctx.beginPath();
+    ctx.moveTo(p.x-mw, rumpY+8*s);
+    ctx.lineTo(p.x-mw*0.5, rumpY-14*s);
+    ctx.lineTo(p.x, rumpY-6*s);
+    ctx.lineTo(p.x+mw*0.5, rumpY-16*s);
+    ctx.lineTo(p.x+mw, rumpY+8*s);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
     ctx.save();
     // Bats HANG upside-down from the ceiling: flip the art vertically (head down,
-    // body up). Anchor so the topmost drawn point (the rump/body, local ly=+28
-    // after flip) sits at the ceiling slab bottom (~40 world px above the bat point),
-    // so the bat actually grips the roof with no gap.
+    // body up). Anchor the rump near the mount.
     const TY = p.y - 40*VIEW.s + 28*(VIEW.s*1.05);
     ctx.translate(p.x, TY);
     ctx.scale(1,-1);
@@ -1405,8 +1485,30 @@ const Render=(()=>{
     ctx.fillStyle=white?'#ff8fa3':'#2a3b5e';ctx.beginPath();ctx.arc(0,-6*s,2.0*s,0,7);ctx.fill();
     ctx.restore();
     if(label){
-      ctx.fillStyle='#cfe6ff';ctx.font=(13*VIEW.s|0)+'px Trebuchet MS';ctx.textAlign='center';
-      ctx.fillText(label,p.x,p.y+70*VIEW.s);
+      // green flashing up-arrow pointing at the (black) bat, with bigger label below
+      const flash=0.5+0.5*Math.sin(performance.now()/250);
+      const ay=p.y+58*VIEW.s;                 // arrow sits below the bat's hanging head
+      ctx.save();
+      ctx.globalAlpha=0.35+0.65*flash;
+      ctx.fillStyle='#37e0a0';
+      ctx.shadowColor='#37e0a0'; ctx.shadowBlur=12*VIEW.s;
+      const aw=14*VIEW.s, ah=18*VIEW.s;
+      ctx.beginPath();                         // triangle pointing UP
+      ctx.moveTo(p.x, ay);
+      ctx.lineTo(p.x-aw, ay+ah);
+      ctx.lineTo(p.x-aw*0.4, ay+ah);
+      ctx.lineTo(p.x-aw*0.4, ay+ah+12*VIEW.s);
+      ctx.lineTo(p.x+aw*0.4, ay+ah+12*VIEW.s);
+      ctx.lineTo(p.x+aw*0.4, ay+ah);
+      ctx.lineTo(p.x+aw, ay+ah);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle='#eaf4ff';
+      ctx.font='700 '+(20*VIEW.s|0)+'px Trebuchet MS';
+      ctx.textAlign='center';
+      ctx.shadowColor='#000'; ctx.shadowBlur=4*VIEW.s;
+      ctx.fillText(label, p.x, p.y+108*VIEW.s);
+      ctx.shadowBlur=0;
     }
   }
   function trail(pts,col,win,prog){
@@ -1471,7 +1573,7 @@ const Render=(()=>{
       trail(w.pts, '#5fd0ff66', false, 1);
     }
     echos(L,w,opts.launched);
-    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to roll':'', opts.blackWing||0);
+    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to Release':'', opts.blackWing||0);
     bat(L.white.x,L.white.y,true,'', opts.whiteWing||0);
     if(opts.launched && !w.won) ball(w.p, w.spin);
   }
