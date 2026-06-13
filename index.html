@@ -83,23 +83,6 @@
   #toast.on{opacity:1;}
   #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
 
-  /* Portrait: the canvas is drawn rotated 90deg to fill the screen, so rotate the
-     HUD + result overlays to match. They become width=100vh, height=100vw, rotated. */
-  body.portrait #hud{
-    width:100vh; left:auto; right:auto; top:0;
-    transform-origin:top left; transform:translateX(100vw) rotate(90deg);
-  }
-  body.portrait #toast{
-    transform-origin:top left;
-    transform:translate(100vw,0) rotate(90deg) translateX(50vh) translateX(-50%);
-    left:0; top:64px;
-  }
-  body.portrait #result{
-    width:100vh; height:100vw;
-    transform-origin:top left; transform:translateX(100vw) rotate(90deg);
-    inset:auto;
-  }
-
   /* result modal */
   #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
     background:#04060bcc;backdrop-filter:blur(3px);z-index:20;}
@@ -132,7 +115,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.1.0</div>
+  <div class="ver">v1.2.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -1431,11 +1414,36 @@ const Render=(()=>{
       ctx.fillText(label,p.x,p.y-74*VIEW.s);
     }
   }
-  function trail(pts,col){
-    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=4*VIEW.s;ctx.setLineDash([2*VIEW.s,10*VIEW.s]);
-    ctx.lineCap='round';ctx.beginPath();let moved=false;
-    for(const pt of pts){ if(!pt){moved=false;continue;} const p=toScreen(pt.x,pt.y);
-      if(!moved){ctx.moveTo(p.x,p.y);moved=true;}else ctx.lineTo(p.x,p.y);}
+  function trail(pts,col,win,prog){
+    // pts may contain nulls (portal breaks). When win, draw a thicker green dashed
+    // line; prog (0..1) reveals it progressively from black bat -> white bat.
+    const clean=pts.filter(Boolean);
+    if(clean.length<2) return;
+    // cumulative lengths for progress reveal
+    let total=0; const segLen=[0];
+    for(let i=1;i<clean.length;i++){ total+=Math.hypot(clean[i].x-clean[i-1].x,clean[i].y-clean[i-1].y); segLen.push(total); }
+    const reveal = (prog==null?1:Math.max(0,Math.min(1,prog))) * total;
+    ctx.save();
+    ctx.strokeStyle=col;
+    ctx.lineWidth=(win?8:4)*VIEW.s;
+    ctx.setLineDash(win?[3*VIEW.s,11*VIEW.s]:[2*VIEW.s,10*VIEW.s]);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    if(win){ ctx.shadowColor=col; ctx.shadowBlur=10*VIEW.s; }
+    ctx.beginPath();
+    let started=false;
+    for(let i=0;i<clean.length;i++){
+      const p=toScreen(clean[i].x,clean[i].y);
+      if(segLen[i]<=reveal){
+        if(!started){ctx.moveTo(p.x,p.y);started=true;}else ctx.lineTo(p.x,p.y);
+      } else {
+        // partial last segment up to the reveal point
+        const prev=clean[i-1], frac=(reveal-segLen[i-1])/(segLen[i]-segLen[i-1]);
+        const ix=prev.x+(clean[i].x-prev.x)*frac, iy=prev.y+(clean[i].y-prev.y)*frac;
+        const ip=toScreen(ix,iy);
+        if(started) ctx.lineTo(ip.x,ip.y);
+        break;
+      }
+    }
     ctx.stroke();ctx.restore();
   }
   function ball(p,spin){
@@ -1459,11 +1467,17 @@ const Render=(()=>{
     applyBaseTransform();
     bg(); const L=w.lvl;
     rock(L); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
-    if(opts.showTrail&&w.pts.length>1) trail(w.pts, w.won?'#37e0c8':'#5fd0ff');
+    if(w.won){
+      // winning route: thick green dotted line revealed black-bat -> white-bat
+      trail(w.pts, '#37e0a0', true, opts.pathProg!=null?opts.pathProg:1);
+    } else if(opts.showTrail && w.pts.length>1){
+      // in-flight breadcrumb (faint blue)
+      trail(w.pts, '#5fd0ff66', false, 1);
+    }
     arrows(L,w,opts.launched);
     bat(L.black.x,L.black.y,false, opts.canFire?'Tap to roll':'');
     bat(L.white.x,L.white.y,true,'');
-    if(opts.launched) ball(w.p, w.spin);
+    if(opts.launched && !w.won) ball(w.p, w.spin);
   }
   return {frame, _ch:1};
 })();
@@ -1475,6 +1489,7 @@ const Game=(()=>{
   let dragIdx=-1, dragOff={x:0,y:0};
   let viewer=false, autoPlacing=false, preT=0;
   let resolved=false;
+  let pathProg=1, winAnim=0, winScore=0;
 
   function loadLevel(id, asViewer){
     viewer=!!asViewer; resolved=false;
@@ -1502,7 +1517,7 @@ const Game=(()=>{
     // freeze oscillator phase at the moment of release: keep current w.t as the launch offset
   }
   function retry(){ launched=false; canFire=true; resolved=false;
-    preT=0;
+    preT=0; pathProg=1; winAnim=0;
     document.getElementById('result').classList.remove('on');
     document.getElementById('scoreNum').textContent='999';
     rebuild(); }
@@ -1511,6 +1526,7 @@ const Game=(()=>{
   function starsForScore(s){ if(s>=L.three)return 3; if(s>=L.two)return 2; return 1; }
 
   function finish(){
+    if(resolved) return;
     resolved=true; const won=w.won;
     const sc=won?BP.score(w):0;
     const stars=won?starsForScore(sc):0;
@@ -1572,7 +1588,7 @@ const Game=(()=>{
   }
   function onUp(){ dragIdx=-1; }
 
-  let last=0, acc=0;
+  let last=0, acc=0, winStartScore=999;
   function loop(){
     cancelAnimationFrame(raf);
     last=performance.now(); acc=0;
@@ -1584,13 +1600,34 @@ const Game=(()=>{
         acc+=dt;
         let guard=0;
         while(acc>=BP.DT && !w.done && guard<600){ BP.step(w); acc-=BP.DT; guard++; }
-        document.getElementById('scoreNum').textContent=String(BP.score(w));
-        if(w.done&&!resolved) setTimeout(finish,420);
+        // score stays at 999 during flight — do NOT update live
+        if(w.done){
+          if(w.won){
+            // begin path-reveal + score-countdown animation
+            pathProg=0; winAnim=0; winScore=BP.score(w);
+            document.getElementById('scoreNum').textContent='999';
+          } else if(!resolved){ setTimeout(finish,420); }
+        }
       } else if(!launched){
         // pre-launch: keep oscillators sweeping by advancing the world clock only
         preT+=dt; if(w) w.t=preT;
       }
-      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched});
+      // win animation: reveal the green path, then count the score down
+      if(w && w.won && !resolved){
+        winAnim+=dt;
+        const REVEAL=1.1, COUNT=1.0;
+        if(winAnim<=REVEAL){
+          pathProg=winAnim/REVEAL;
+          document.getElementById('scoreNum').textContent='999';
+        } else {
+          pathProg=1;
+          const k=Math.min(1,(winAnim-REVEAL)/COUNT);
+          const shown=Math.round(999+(winScore-999)*k);
+          document.getElementById('scoreNum').textContent=String(shown);
+          if(k>=1 && !resolved) finish();
+        }
+      }
+      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched,pathProg});
     };
     raf=requestAnimationFrame(tick);
   }
