@@ -83,6 +83,31 @@
   #toast.on{opacity:1;}
   #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
 
+  /* pause menu */
+  #pause{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:#04060bd0;backdrop-filter:blur(3px);z-index:25;}
+  #pause.on{display:flex;}
+  .pausebox{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(440px,84vw);}
+  .ptitle{margin:0 0 8px;font-size:30px;letter-spacing:6px;color:var(--gold);
+    text-shadow:0 0 16px #ffae0066;}
+  .pbtn{appearance:none;width:100%;border:1px solid #2c3b5e;
+    background:linear-gradient(180deg,#1a2440,#121a30);color:var(--txt);font:inherit;
+    font-size:19px;font-weight:700;letter-spacing:2px;padding:15px 20px;border-radius:14px;
+    cursor:pointer;box-shadow:0 5px 0 #0a1020,0 8px 16px #0006;transition:transform .05s,box-shadow .05s;}
+  .pbtn:active{transform:translateY(4px);box-shadow:0 1px 0 #0a1020;}
+  .pbtn.dim{opacity:.45;}
+
+  /* rotate prompt */
+  #rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:#05070d;z-index:60;}
+  .rotinner{text-align:center;}
+  .roticon{font-size:64px;color:var(--glow);animation:spin 2.4s linear infinite;
+    text-shadow:0 0 20px var(--glow);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .rottext{margin-top:18px;font-size:22px;font-weight:700;color:var(--txt);letter-spacing:1px;}
+  .rottext span{display:block;margin-top:8px;font-size:13px;font-weight:400;color:var(--dim);
+    letter-spacing:2px;text-transform:uppercase;}
+
   /* result modal */
   #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
     background:#04060bcc;backdrop-filter:blur(3px);z-index:20;}
@@ -115,7 +140,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.2.0</div>
+  <div class="ver">v1.3.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -153,8 +178,8 @@
     </div>
     <div class="pill" id="lvlName"></div>
     <div style="display:flex;gap:8px">
+      <button class="icbtn" id="pauseBtn" onclick="UI.pause()" title="Pause">❚❚</button>
       <button class="icbtn" id="fsBtn" onclick="UI.toggleFullscreen()" title="Fullscreen">⛶</button>
-      <button class="icbtn" onclick="Game.retry()" title="Retry">⟳</button>
       <button class="icbtn" id="viewerBadge" style="display:none" onclick="UI.viewerSolve()" title="Show solution">✦</button>
     </div>
   </div>
@@ -172,7 +197,24 @@
       <div class="hint" id="rHint"></div>
     </div>
   </div>
+  <div id="pause">
+    <div class="pausebox">
+      <h2 class="ptitle">– PAUSED –</h2>
+      <button class="pbtn" onclick="UI.resume()">RESUME GAME</button>
+      <button class="pbtn" onclick="UI.arrowsDefault()">ARROWS TO DEFAULT</button>
+      <button class="pbtn" id="pbBest" onclick="UI.arrowsBest()">ARROWS TO MY BEST</button>
+      <button class="pbtn" onclick="UI.quitToSelect()">QUIT</button>
+    </div>
+  </div>
   <div class="tag" id="viewerTag" style="display:none">VIEWER MODE</div>
+</div>
+
+<!-- rotate prompt (portrait) -->
+<div id="rotate">
+  <div class="rotinner">
+    <div class="roticon">⟳</div>
+    <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
+  </div>
 </div>
 
 <script>
@@ -1180,11 +1222,15 @@ const Store={
   save(){ try{localStorage.setItem(SAVE_KEY,JSON.stringify(this.data));}catch(e){} },
   starsFor(id){return this.data.stars[id]||0;},
   bestFor(id){return this.data.best[id]||0;},
+  bestPlacementFor(id){return (this.data.bestPos&&this.data.bestPos[id])||null;},
   unlocked(id){return id<=this.data.unlocked;},
-  record(id,stars,score){
+  record(id,stars,score,placement){
     if(stars>this.starsFor(id))this.data.stars[id]=stars;
-    if(score>this.bestFor(id))this.data.best[id]=score;
-    if(stars>=1 && id+1>this.data.unlocked && id<50)this.data.unlocked=id+1;
+    if(score>this.bestFor(id)){
+      this.data.best[id]=score;
+      if(placement){ this.data.bestPos=this.data.bestPos||{}; this.data.bestPos[id]=placement; }
+    }
+    if(stars>=1 && id+1>this.data.unlocked && id<100)this.data.unlocked=id+1;
     this.save();
   },
   totalStars(){let s=0;for(const k in this.data.stars)s+=this.data.stars[k];return s;},
@@ -1194,48 +1240,30 @@ const Store={
 
 /* ============ canvas + camera ============ */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
-let VIEW={s:1,ox:0,oy:0,rot:false,W:0,H:0,dpr:1};
+let VIEW={s:1,ox:0,oy:0,W:0,H:0,dpr:1};
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   const w=window.innerWidth,h=window.innerHeight;
   cv.width=w*dpr; cv.height=h*dpr; cv.style.width=w+'px'; cv.style.height=h+'px';
-  // Rotate when the device is in portrait (taller than wide) so the landscape
-  // 1600x900 world fills the screen. Effective drawing area swaps W/H when rotated.
-  VIEW.rot = h > w;
-  document.body.classList.toggle('portrait', VIEW.rot);
   VIEW.dpr = dpr; VIEW.W = w; VIEW.H = h;
-  const availW = VIEW.rot ? h : w;     // world maps onto this many CSS px horizontally
-  const availH = VIEW.rot ? w : h;
-  const s = Math.min(availW/BP.W, availH/BP.H); VIEW.s = s;
-  VIEW.ox = (availW - BP.W*s)/2;
-  VIEW.oy = (availH - BP.H*s)/2;
+  const s = Math.min(w/BP.W, h/BP.H); VIEW.s = s;
+  VIEW.ox = (w - BP.W*s)/2;
+  VIEW.oy = (h - BP.H*s)/2;
+  // landscape-only: show a rotate prompt when the device is portrait
+  const portrait = h > w;
+  const rp=document.getElementById('rotate');
+  if(rp) rp.style.display = portrait ? 'flex' : 'none';
 }
 window.addEventListener('resize',resize);
 window.addEventListener('orientationchange',()=>setTimeout(resize,80));
 
-// Apply the base transform (dpr + optional 90° rotation) to the context.
-// After this, drawing in "screen" space (availW x availH) lands correctly.
 function applyBaseTransform(){
   const dpr=VIEW.dpr;
-  if(VIEW.rot){
-    // rotate 90° clockwise: device portrait -> game landscape
-    // map (sx,sy) in availW(=h) x availH(=w) to physical (w,h)
-    ctx.setTransform(0, dpr, -dpr, 0, VIEW.W*dpr, 0);
-  } else {
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
+  ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-// world -> screen (in the availW x availH rotated space)
 function toScreen(wx,wy){return{x:wx*VIEW.s+VIEW.ox,y:wy*VIEW.s+VIEW.oy};}
-// pointer (physical client px) -> world
 function toWorld(cx,cy){
-  let sx,sy;
-  if(VIEW.rot){
-    // inverse of the clockwise rotation: physical (cx,cy) -> rotated screen space
-    sx = cy;
-    sy = VIEW.W - cx;
-  } else { sx = cx; sy = cy; }
-  return { x:(sx-VIEW.ox)/VIEW.s, y:(sy-VIEW.oy)/VIEW.s };
+  return { x:(cx-VIEW.ox)/VIEW.s, y:(cy-VIEW.oy)/VIEW.s };
 }
 
 /* ============ rendering ============ */
@@ -1259,8 +1287,7 @@ const Render=(()=>{
   function pal(){ const ch=(Render._ch||1); return PAL[Math.max(1,Math.min(10,ch))]; }
   function bg(){
     const P=pal();
-    const AW = VIEW.rot ? VIEW.H : VIEW.W;   // available width in rotated space
-    const AH = VIEW.rot ? VIEW.W : VIEW.H;
+    const AW = VIEW.W, AH = VIEW.H;
     const g=ctx.createLinearGradient(0,VIEW.oy,0,VIEW.oy+BP.H*VIEW.s);
     g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
     ctx.fillStyle='#05070d'; ctx.fillRect(-10,-10,AW+20,AH+20);
@@ -1488,7 +1515,7 @@ const Game=(()=>{
   let placements=[];           // {x,y} for drag arrows
   let dragIdx=-1, dragOff={x:0,y:0};
   let viewer=false, autoPlacing=false, preT=0;
-  let resolved=false;
+  let resolved=false, paused=false;
   let pathProg=1, winAnim=0, winScore=0;
 
   function loadLevel(id, asViewer){
@@ -1549,7 +1576,7 @@ const Game=(()=>{
     const nextBtn=document.getElementById('rNext');
     const canNext = L.id<100 && (viewer || (won&&stars>=1) || Store.unlocked(L.id+1));
     nextBtn.style.display=canNext?'inline-block':'none';
-    if(won && !viewer){ Store.record(L.id,stars,sc); UI.refreshTitle(); }
+    if(won && !viewer){ Store.record(L.id,stars,sc, placements.map(p=>({x:Math.round(p.x),y:Math.round(p.y)}))); UI.refreshTitle(); }
     r.classList.add('on');
   }
 
@@ -1565,6 +1592,7 @@ const Game=(()=>{
 
   // input
   function onDown(cx,cy){
+    if(paused) return;
     // after release: a tap anywhere resets the ball and re-enables dragging
     if(launched){ retry(); return; }
     const wp=toWorld(cx,cy);
@@ -1596,6 +1624,7 @@ const Game=(()=>{
       raf=requestAnimationFrame(tick);
       let dt=(ts-last)/1000; last=ts;
       if(dt>0.1)dt=0.1;                 // clamp after tab-switch
+      if(paused){ Render.frame(w,{launched,canFire:false,showTrail:launched,pathProg}); return; }
       if(launched&&!w.done){
         acc+=dt;
         let guard=0;
@@ -1632,8 +1661,27 @@ const Game=(()=>{
     raf=requestAnimationFrame(tick);
   }
 
+  function pause(){ paused=true; }
+  function setPaused(v){ paused=v; }
+  function resumeGame(){ paused=false; }
+  function arrowsToDefault(){
+    const nt=nTools();
+    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:120, y:190+i*92 });
+    launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
+    rebuild();
+  }
+  function arrowsToBest(){
+    const best=Store.bestPlacementFor(L.id);
+    if(!best||!best.length) return false;
+    placements=best.map(p=>({x:p.x,y:p.y}));
+    launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
+    rebuild(); return true;
+  }
+  function hasBest(){ const b=Store.bestPlacementFor(L?L.id:0); return !!(b&&b.length); }
+
   return {loadLevel,fire,retry,next,onDown,onMove,onUp,viewerSolve,
-          get launched(){return launched;}, get viewer(){return viewer;}};
+          pause,setPaused,resumeGame,arrowsToDefault,arrowsToBest,hasBest,
+          get launched(){return launched;}, get viewer(){return viewer;}, get paused(){return paused;}};
 })();
 
 /* pointer wiring — listen on the game screen overlay (it sits above the canvas),
@@ -1644,7 +1692,7 @@ const Game=(()=>{
   const xy=e=>({x:e.clientX,y:e.clientY});
   surface.addEventListener('pointerdown',e=>{
     // ignore taps that start on an actual control (buttons, pills)
-    if(e.target.closest('.icbtn,.btn,#result')) return;
+    if(e.target.closest('.icbtn,.btn,.pbtn,#result,#pause')) return;
     active=true; const p=xy(e); Game.onDown(p.x,p.y);
   });
   surface.addEventListener('pointermove',e=>{if(active){const p=xy(e);Game.onMove(p.x,p.y);}});
@@ -1688,7 +1736,8 @@ const UI=(()=>{
       g.appendChild(cell);
     });
   }
-  function quitToSelect(){document.getElementById('result').classList.remove('on');showSelect();}
+  function quitToSelect(){document.getElementById('result').classList.remove('on');
+    document.getElementById('pause').classList.remove('on');Game.resumeGame();showSelect();}
   function openViewer(){buildViewerGrid();}
   function buildViewerGrid(){
     // viewer = level select that ignores locks, launches in viewer mode
@@ -1717,6 +1766,18 @@ const UI=(()=>{
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
     clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600);}
   return {go,toTitle,play,showSelect,refreshTitle,quitToSelect,openViewer,viewerSolve,toast,
+    pause(){
+      Game.pause();
+      const pb=document.getElementById('pbBest');
+      if(pb) pb.classList.toggle('dim', !Game.hasBest());
+      document.getElementById('pause').classList.add('on');
+    },
+    resume(){ document.getElementById('pause').classList.remove('on'); Game.resumeGame(); },
+    arrowsDefault(){ Game.arrowsToDefault(); UI.resume(); UI.toast('Arrows reset to default'); },
+    arrowsBest(){
+      if(Game.arrowsToBest()){ UI.resume(); UI.toast('Arrows set to your best layout'); }
+      else { UI.toast('No best layout saved yet — clear the level first'); }
+    },
     toggleFullscreen(){
       const el=document.documentElement;
       const fs=document.fullscreenElement||document.webkitFullscreenElement;
