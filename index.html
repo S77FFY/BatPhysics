@@ -42,26 +42,33 @@
   .row{display:flex;flex-wrap:wrap;justify-content:center;}
 
   /* level select grid */
-  #select .head{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-  #select h2{margin:0;font-size:26px;color:var(--bat-w);letter-spacing:1px;}
-  .chaptabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;}
-  .chaptab{padding:8px 14px;border-radius:10px;border:1px solid #243152;background:#101830;
-    font-size:12px;letter-spacing:1px;cursor:pointer;color:var(--dim);}
-  .chaptab.act{color:#fff;border-color:var(--glow2);background:#13302e;text-shadow:0 0 8px var(--glow);}
-  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:min(640px,92vw);}
-  .cell{aspect-ratio:1;border-radius:14px;border:1px solid #233055;
-    background:linear-gradient(180deg,#16203c,#0e1730);display:flex;flex-direction:column;
-    align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;}
-  .cell .n{font-size:24px;font-weight:800;color:var(--bat-w);}
-  .cell .nm{font-size:8.5px;letter-spacing:.3px;color:var(--dim);padding:0 4px;text-align:center;
-    margin-top:2px;line-height:1.1;}
-  .cell .st{position:absolute;bottom:6px;font-size:11px;letter-spacing:2px;color:var(--gold);}
-  .cell.lock{cursor:not-allowed;opacity:.5;}
-  .cell.lock .n{color:var(--dim);}
-  .cell.lock::after{content:"\1F512";position:absolute;font-size:18px;opacity:.7;}
-  .cell.lock .n,.cell.lock .nm{visibility:hidden;}
-  .cell.done{border-color:var(--glow2);}
-  .cell:not(.lock):active{transform:scale(.96);}
+  /* level select: frozen header + scrollable list */
+  #select{flex-direction:column;padding:0;}
+  #select.on{display:flex;}
+  .selhead{flex:0 0 auto;display:flex;align-items:center;gap:14px;
+    padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:#070b14ee;
+    border-bottom:1px solid #1d2740;backdrop-filter:blur(6px);z-index:5;}
+  .seltotals{display:flex;gap:22px;align-items:baseline;}
+  .seltotals>div{display:flex;flex-direction:column;align-items:center;}
+  .seltotals b{font-size:22px;color:var(--gold);text-shadow:0 0 12px #ffae0044;line-height:1;}
+  .seltotals span{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:3px;}
+  .levlist{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:12px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;
+    gap:10px;width:min(720px,100%);margin:0 auto;box-sizing:border-box;}
+  .lrow{display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:14px;
+    border:1px solid #233055;background:linear-gradient(180deg,#141d36,#0d1528);cursor:pointer;}
+  .lrow:active{transform:scale(.99);}
+  .lrow.lock{opacity:.45;cursor:not-allowed;}
+  .lrow .ln{font-size:20px;font-weight:800;color:var(--bat-w);min-width:34px;text-align:center;}
+  .lrow .lmid{flex:1;display:flex;flex-direction:column;gap:3px;}
+  .lrow .lnm{font-size:15px;color:var(--txt);letter-spacing:.3px;}
+  .lrow .lbest{font-size:11px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;}
+  .lrow .lstars{font-size:15px;letter-spacing:2px;color:var(--gold);white-space:nowrap;}
+  .lrow.lock .lstars,.lrow.lock .lbest{visibility:hidden;}
+  .lrow.lock::after{content:"\1F512";font-size:16px;opacity:.7;}
+  /* white-hot stars: beat the verified reference score */
+  .lstars.hot{color:#fff;text-shadow:0 0 8px #fff,0 0 16px #9ad7ff,0 0 24px #6cf;}
+  .lrow.beat{border-color:#bfe8ff;box-shadow:0 0 14px #7fd0ff55,inset 0 0 18px #7fd0ff14;}
 
   /* in-game HUD */
   #hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
@@ -140,13 +147,13 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.4.0</div>
+  <div class="ver">v1.5.3</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
-    <div><b id="tStars">0</b><span>★ Stars</span></div>
-    <div><b id="tScore">0</b><span>Total Score</span></div>
-    <div><b id="tDone">0/100</b><span>Cleared</span></div>
+    <div><b id="ttStars">0</b><span>★ Stars</span></div>
+    <div><b id="ttScore">0</b><span>Total Score</span></div>
+    <div><b id="ttDone">0/10</b><span>Cleared</span></div>
   </div>
   <div class="row">
     <button class="btn primary" onclick="UI.play()">PLAY</button>
@@ -161,12 +168,15 @@
 
 <!-- LEVEL SELECT -->
 <div id="select" class="screen">
-  <div class="head">
+  <div class="selhead">
     <button class="icbtn" onclick="UI.toTitle()">‹</button>
-    <h2>Select a Level</h2>
+    <div class="seltotals">
+      <div><b id="tScore">0</b><span>Total Score</span></div>
+      <div><b id="tStars">0</b><span>★ Stars</span></div>
+      <div><b id="tDone">0/10</b><span>Cleared</span></div>
+    </div>
   </div>
-  <div class="chaptabs" id="chaptabs"></div>
-  <div class="grid" id="grid"></div>
+  <div class="levlist" id="levlist"></div>
 </div>
 
 <!-- GAME -->
@@ -229,6 +239,8 @@ const GRAV = 1500;
 const BALLR = 14;
 const SEG_TH = 7;            // half-thickness of segment colliders
 const ARROW_SPEED = 880;
+const ECHO_BOOST = 1180;     // exit speed when accelerating through an echo
+const ECHO_DECAY = 1400;     // px/s^2 the boost bleeds off back toward normal
 const ARROW_R = 57;
 const FLIP_SPEED = 860;
 const FLIP_R = 78;
@@ -259,18 +271,85 @@ function closestOnRect(px, py, r) {
            y: Math.max(r[1], Math.min(py, r[1] + r[3])) };
 }
 
+// ---------- vertical flip + recenter ----------
+// Flip the whole level about y=450 (so floor->ceiling, bats hang down), then
+// shift down so the playable band sits just above screen-center. Gravity is
+// unchanged (still +y), so the ball falls away from the hanging bats.
+const FLIP_SHIFT = 300;
+function fy(y){ return (900 - y) + FLIP_SHIFT; }     // flip about 450, then shift down
+function flipRect(r){ // [x,y,w,h] -> flip top edge becomes bottom
+  return [r[0], fy(r[1] + r[3]), r[2], r[3]];
+}
+function flipLevel(level){
+  if (level._flipped) return level._flipped;
+  // Hand-authored levels already in flipped screen-space: use as-is (no transform,
+  // no auto-terrain). The ball still spawns below the hanging bat (set in makeWorld).
+  if (level.preFlipped) { level._flipped = level; return level; }
+  const L = JSON.parse(JSON.stringify(level));
+  L.black = { x: level.black.x, y: fy(level.black.y) };
+  L.white = { x: level.white.x, y: fy(level.white.y) };
+  if (level.launch) L.launch = { vx: level.launch.vx, vy: -(level.launch.vy||0) };
+  L.rects = (level.rects||[]).map(flipRect);
+  // Auto-terrain: the flip leaves open space below the hanging bats. Add a set of
+  // staggered ledges/crags there so the falling ball has surfaces to land/roll on,
+  // making the arc puzzles solvable. Levels can opt out with noAutoTerrain, or
+  // add their own via level.crags (already-flipped coords) — but default gives a
+  // gentle "cave floor" landscape under the action.
+  if (!level.noAutoTerrain) {
+    const baseY = 560;   // main catch-floor a bit below bat level (~406)
+    // short landing ledges directly under each bat (at the ball's spawn/win height)
+    // so a ball arriving near bat level can settle and roll in, like the original floor.
+    const by = level.black.y, wy = level.white.y;   // pre-flip y
+    const bfx = level.black.x, wfx = level.white.x;
+    L.rects.push([bfx-150, fy(by)+30, 300, 22]);
+    L.rects.push([wfx-150, fy(wy)+30, 300, 22]);
+    // a broken, rocky main ledge with gaps lower down
+    L.rects.push([60, baseY, 360, 30]);
+    L.rects.push([520, baseY+60, 380, 30]);
+    L.rects.push([1000, baseY, 360, 30]);
+    L.rects.push([1420, baseY+50, 140, 30]);
+    // hanging crags from the ceiling platform (stubby stalactites)
+    L.rects.push([520, 380, 40, 130]);
+    L.rects.push([960, 380, 40, 150]);
+    // lower crags rising from deeper floor
+    L.rects.push([700, baseY+150, 40, 120]);
+    L.rects.push([1120, baseY+150, 40, 120]);
+  }
+  L.segs = (level.segs||[]).map(s => [s[0], fy(s[1]), s[2], fy(s[3])]);
+  L.doors = (level.doors||[]).map(d => ({ ...d, y1: fy(d.y1), y2: fy(d.y2) }));
+  L.buttons = (level.buttons||[]).map(b => ({ ...b, y: fy(b.y) }));
+  L.flippers = (level.flippers||[]).map(f => ({ ...f, y: fy(f.y), h: (12 - f.h) % 12 }));
+  L.portals = (level.portals||[]).map(p => ({ ...p, ay: fy(p.ay), by: fy(p.by) }));
+  L.bouncy = (level.bouncy||[]).map(flipRect);
+  L.cogs = (level.cogs||[]).map(c => ({ ...c, y: fy(c.y), spin: -(c.spin||1) }));
+  L.windmills = (level.windmills||[]).map(m => ({ ...m, y: fy(m.y), dir: -(m.dir||1) }));
+  // tools keep their angles but flipped vertically: hour h -> (12 - h) % 12
+  const flipH = h => ((12 - h) % 12 + 12) % 12;
+  if (level.tools) L.tools = level.tools.map(t => t.t==='osc'
+    ? { t:'osc', h1:flipH(t.h1), h2:flipH(t.h2), period:t.period }
+    : { t:'fix', h:flipH(t.h) });
+  if (level.arrows) L.arrows = level.arrows.map(a => ({ ...a, h:flipH(a.h), y: fy(a.y) }));
+  if (level.osc) L.osc = level.osc.map(a => ({ ...a, h1:flipH(a.h1), h2:flipH(a.h2), y: fy(a.y) }));
+  if (level.drag) L.drag = level.drag.map(a => ({ ...a, h:flipH(a.h), y: fy(a.y) }));
+  if (level.extraEchos) L.extraEchos = level.extraEchos; // count of solver-added echos
+  L.id = level.id; L.name = level.name; L.ch = level.ch;
+  level._flipped = L;
+  return L;
+}
+
 // ---------- world instantiation ----------
 // placements: array of {x,y} overriding drag-arrow positions (player or solution)
-function makeWorld(level, placements) {
+function makeWorld(level0, placements) {
+  const level = flipLevel(level0);
   const w = {
     lvl: level,
     t: 0,
-    p: { x: level.black.x, y: level.black.y - 26 },
+    p: { x: level.black.x, y: level.black.y + 26 },
     v: { x: level.launch ? level.launch.vx : 260, y: level.launch ? level.launch.vy : 0 },
     path: 0,
-    pts: [{ x: level.black.x, y: level.black.y - 26 }],
+    pts: [{ x: level.black.x, y: level.black.y + 26 }],
     won: false, fail: null, done: false,
-    spin: 0,
+    spin: 0, boost: 0,
     stall: 0,
     arrows: [],          // unified arrow runtime list
     doorOpen: (level.doors || []).map(() => false),
@@ -291,7 +370,12 @@ function makeWorld(level, placements) {
     (level.arrows || []).forEach(a => tools.push({ t: 'fix', h: a.h }));
     (level.osc || []).forEach(a => tools.push({ t: 'osc', h1: a.h1, h2: a.h2, period: a.period || 2.4 }));
     (level.drag || []).forEach(a => tools.push({ t: 'fix', h: a.h }));
+  } else {
+    tools = tools.slice();
   }
+  // extra echos added by the solver to make flipped levels completable
+  const extra = level0.extraEchos || level.extraEchos || 0;
+  for (let i = 0; i < extra; i++) tools.push({ t: 'fix', h: 3 });
   w.toolDefs = tools;
   tools.forEach((a, i) => {
     const pl = (placements && placements[i]) ? placements[i] : { x: 120, y: 190 + i * 92 };
@@ -299,7 +383,10 @@ function makeWorld(level, placements) {
       w.arrows.push({ x: pl.x, y: pl.y, h: a.h1, h1: a.h1, h2: a.h2,
                       period: a.period || 2.4, kind: 'osc', armed: true, di: i });
     } else {
-      w.arrows.push({ x: pl.x, y: pl.y, h: a.h, kind: 'fix', armed: true, di: i });
+      // angle may be overridden by the placement (pl.h) — used by the solver and
+      // by the flip system, since flipped levels need freshly-chosen angles.
+      const h = (pl.h != null) ? pl.h : a.h;
+      w.arrows.push({ x: pl.x, y: pl.y, h, kind: 'fix', armed: true, di: i });
     }
   });
   return w;
@@ -358,6 +445,59 @@ function step(w) {
       const cp = closestOnRect(w.p.x, w.p.y, r);
       if (collide(cp, 0)) hit = true;
     }
+    // bouncy walls: rects that reflect the ball with high restitution
+    for (const r of (L.bouncy || [])) {
+      const cp = closestOnRect(w.p.x, w.p.y, r);
+      let dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
+      if (d < BALLR) {
+        let nx, ny; if (d < 1e-6) { nx = 0; ny = -1; } else { nx = dx / d; ny = dy / d; }
+        w.p.x += nx * (BALLR - d); w.p.y += ny * (BALLR - d);
+        const vn = w.v.x * nx + w.v.y * ny;
+        if (vn < 0) { const e = 1.15; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny;
+          w.events.push({ t: w.t, kind: 'bounce', x: cp.x, y: cp.y }); }
+        hit = true;
+      }
+    }
+    // cogs: large spinning discs — solid round colliders with a tangential drag
+    (L.cogs || []).forEach((c) => {
+      const dx = w.p.x - c.x, dy = w.p.y - c.y; const d = Math.hypot(dx, dy);
+      const min = BALLR + c.r;
+      if (d < min && d > 1e-6) {
+        const nx = dx / d, ny = dy / d;
+        w.p.x += nx * (min - d); w.p.y += ny * (min - d);
+        const vn = w.v.x * nx + w.v.y * ny;
+        if (vn < 0) { const e = 0.35; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+        // surface motion imparts tangential push (spin direction)
+        const spin = c.spin || 1;            // +1 cw, -1 ccw
+        const tx = -ny * spin, ty = nx * spin;
+        const surf = (c.surf != null ? c.surf : 360);
+        w.v.x += tx * surf * DT * 2.2; w.v.y += ty * surf * DT * 2.2;
+        hit = true;
+      }
+    });
+    // windmills: 4 prongs (line segments) rotating about a hub; batting line colliders
+    (L.windmills || []).forEach((m, mi) => {
+      const ang = (w.t * (m.speed || 1.4)) * (m.dir || 1);
+      for (let k = 0; k < 4; k++) {
+        const a2 = ang + k * Math.PI / 2;
+        const ex = m.x + Math.cos(a2) * m.len, ey = m.y + Math.sin(a2) * m.len;
+        const cp = closestOnSeg(w.p.x, w.p.y, m.x, m.y, ex, ey);
+        const dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
+        if (d < BALLR + SEG_TH && d > 1e-6) {
+          const nx = dx / d, ny = dy / d;
+          w.p.x += nx * (BALLR + SEG_TH - d); w.p.y += ny * (BALLR + SEG_TH - d);
+          const vn = w.v.x * nx + w.v.y * ny;
+          if (vn < 0) { const e = 0.55; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+          // prong sweep imparts motion proportional to radius
+          const rr = Math.hypot(cp.x - m.x, cp.y - m.y);
+          const tang = (m.speed || 1.4) * (m.dir || 1) * rr;
+          const tx = -(cp.y - m.y) / (rr || 1), ty = (cp.x - m.x) / (rr || 1);
+          w.v.x += tx * tang * DT * 3.0; w.v.y += ty * tang * DT * 3.0;
+          w.events.push({ t: w.t, kind: 'windmill', i: mi });
+          hit = true;
+        }
+      }
+    });
     for (const s of (L.segs || [])) {
       const cp = closestOnSeg(w.p.x, w.p.y, s[0], s[1], s[2], s[3]);
       if (collide(cp, SEG_TH)) hit = true;
@@ -397,16 +537,29 @@ function step(w) {
     }
   });
 
-  // arrows
+  // echos: SINGLE-USE. Ball accelerates THROUGH and exits along the echo's aim
+  // (its 0deg point) with a boost that decays back to gravity-normal. Once an echo
+  // fires it is spent for the rest of the attempt and cannot trigger again.
   for (const a of w.arrows) {
+    if (a.spent) continue;
     const d = Math.hypot(w.p.x - a.x, w.p.y - a.y);
-    if (a.armed && d < ARROW_R + BALLR) {
+    if (d < ARROW_R + BALLR) {
       const dir = hourDir(arrowAngleHour(a, w.t));
-      w.v.x = dir.x * ARROW_SPEED;
-      w.v.y = dir.y * ARROW_SPEED;
-      a.armed = false;
+      w.v.x = dir.x * ECHO_BOOST;
+      w.v.y = dir.y * ECHO_BOOST;
+      w.boost = 1;
+      a.spent = true;              // single-use: gone for the rest of this attempt
       w.events.push({ t: w.t, kind: 'arrow', x: a.x, y: a.y });
-    } else if (!a.armed && d > ARROW_R + BALLR + 12) a.armed = true;
+    }
+  }
+  // boost decay: while boosted and above normal launch speed, bleed speed off
+  // smoothly so the ball returns to a gravity-normal pace after exiting.
+  if (w.boost > 0) {
+    const sp = Math.hypot(w.v.x, w.v.y);
+    if (sp > ARROW_SPEED) {
+      const ns = Math.max(ARROW_SPEED, sp - ECHO_DECAY * DT);
+      w.v.x *= ns / sp; w.v.y *= ns / sp;
+    } else { w.boost = 0; }
   }
 
   // flippers (auto-fire, once per attempt)
@@ -451,10 +604,10 @@ function step(w) {
   if (!last || Math.hypot(w.p.x - last.x, w.p.y - last.y) > 18) w.pts.push({ x: w.p.x, y: w.p.y });
 
   // win
-  const dw = Math.hypot(w.p.x - L.white.x, w.p.y - (L.white.y - 26));
+  const dw = Math.hypot(w.p.x - L.white.x, w.p.y - (L.white.y + 26));
   if (dw < WIN_R) {
     w.won = true; w.done = true;
-    w.pts.push({ x: L.white.x, y: L.white.y - 26 });
+    w.pts.push({ x: L.white.x, y: L.white.y + 26 });
     return;
   }
 
@@ -482,726 +635,135 @@ return { W, H, DT, GRAV, BALLR, SEG_TH, ARROW_SPEED, ARROW_R, FLIP_R, PORTAL_R, 
 
 
 /* ============ embedded levels (verified solvable) ============ */
-// ============ BAT PHYSICS — 50 levels ============
-// World 1600x900. Floor top y=820. hour: 12=up 3=right 6=down 9=left.
-// Budget @ arrow speed 880: rise 258 (h12) / 193 (h1) / 64 (h2); flat hop <=447.
-// Flipper speed 860: rise 246 (h12) / 185 (h1).
+// ============ BAT PHYSICS — 10 fresh flipped levels ============
+// Flipped screen-space (preFlipped:true): bats HANG from the ceiling (~y=360); the
+// ball spawns just BELOW the black bat and falls under gravity. Player places a POOL
+// of SINGLE-USE echos (each fires once then vanishes); fewer can solve, more may help.
+// WIN: white bat at y=360 has win-point y=386; an exit ledge with TOP at y=400 sits
+// right under it, so landing a ball there = win. hour: 12=up 3=right 6=down 9=left.
 'use strict';
 const LEVELS = (() => {
-const F = 820;
-const base = () => ([ [0,F,1600,80], [-50,-200,70,1300], [1580,-200,70,1300], [0,-60,1600,70] ]);
-function floorPits(gaps){ const r=[]; let x=0; for(const [a,b] of gaps){ r.push([x,F,a-x,80]); x=b; } r.push([x,F,1600-x,80]); return r; }
-const walls = () => ([ [-50,-200,70,1300], [1580,-200,70,1300], [0,-60,1600,70] ]);
 const LV = [];
-const A=(x,y,h)=>({x,y,h});
-const D=(x,y,h,sx,sy)=>({x,y,h,sx,sy});
-const O=(x,y,h1,h2,p)=>({x,y,h1,h2,period:p});
-const T=(h)=>({t:'fix',h});
+const CEIL = 320;
+const ceil = () => [0,-40,1600,CEIL+40];
+const wallL = () => [-40,-40,60,1300], wallR = () => [1580,-40,60,1300];
+const T  = (h)=>({t:'fix',h});
 const Tosc=(h1,h2,p)=>({t:'osc',h1,h2,period:p||2.2});
-const roof=(x,w,y)=>[x,y,w,26];
-
-// ---------------- Chapter 1 · Cavern Mouth ----------------
-LV.push({ name:'First Flight', ch:1,
-  black:{x:190,y:F}, white:{x:1410,y:F}, launch:{vx:300,vy:0},
-  rects:[...base()], arrows:[A(800,790,3)] });
-
-LV.push({ name:'Place the Echo', ch:1,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[640,1000]]), ...walls()],
-  drag:[D(300,640,2, 576,774)] });
-
-LV.push({ name:'Up the Shaft', ch:1,
-  black:{x:170,y:F}, white:{x:1380,y:640}, launch:{vx:300,vy:0},
-  rects:[...base(), [1180,640,420,26]],
-  drag:[D(300,600,1, 950,786)] });
-
-LV.push({ name:'Stalagmite Hop', ch:1,
-  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [760,640,90,180]],
-  drag:[D(300,620,1, 560,788)] });
-
-LV.push({ name:'Two Hops', ch:1,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[480,760],[1020,1300]]), ...walls()],
-  drag:[D(260,600,2, 420,790), D(330,600,2, 940,790)] });
-
-LV.push({ name:'Back Wall Bank', ch:1,
-  black:{x:200,y:F}, white:{x:260,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [120,620,360,24]],
-  drag:[D(500,560,11, 760,786)] });
-
-LV.push({ name:'Chimney', ch:1,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [760,0,70,420]],
-  tools:[T(2)] });
-
-LV.push({ name:'Pendulum', ch:1,
-  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[760,1180]]), ...walls()],
-  osc:[O(700,620,1,3,2.2)],
-  drag:[D(300,600,1, 520,788)] });
-
-LV.push({ name:'Stacked Echoes', ch:1,
-  black:{x:170,y:F}, white:{x:1430,y:300}, launch:{vx:300,vy:0},
-  rects:[...base(), [1240,300,360,24]],
-  arrows:[A(820,560,12), A(820,330,1)],
-  drag:[D(300,600,12, 820,786)] });
-
-LV.push({ name:'Mouth of the Deep', ch:1,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[560,900]]), ...walls()],
-  tools:[T(2),T(2)] });
-
-// ---------------- Chapter 2 · Crystal Hollows (buttons & gates) ----------------
-LV.push({ name:'Press to Pass', ch:2,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base()],
-  doors:[{x1:900,y1:600,x2:900,y2:814,trig:{k:'button'}}],
-  buttons:[{x:560,y:796,door:0}],
-  arrows:[A(1050,790,3)] });
-
-LV.push({ name:'High Switch', ch:2,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [620,620,280,24]],
-  doors:[{x1:1120,y1:560,x2:1120,y2:814,trig:{k:'button'}}],
-  buttons:[{x:760,y:596,door:0}],
-  drag:[D(300,600,1, 520,788)], arrows:[A(1000,790,3)] });
-
-LV.push({ name:'Two Gates', ch:2,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
-  rects:[...base()],
-  doors:[{x1:760,y1:620,x2:760,y2:814,trig:{k:'button'}},
-         {x1:1200,y1:620,x2:1200,y2:814,trig:{k:'button'}}],
-  buttons:[{x:420,y:796,door:0},{x:980,y:796,door:1}],
-  arrows:[A(560,790,3), A(1060,790,3)] });
-
-LV.push({ name:'Crystal Lift', ch:2,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [560,620,200,24]],
-  doors:[{x1:1150,y1:540,x2:1150,y2:814,trig:{k:'button'}}],
-  buttons:[{x:660,y:596,door:0}],
-  drag:[D(300,560,1, 470,788)], arrows:[A(880,790,3)] });
-
-LV.push({ name:'The Long Hall', ch:2,
-  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
-  rects:[...base(), [500,560,600,24]],
-  doors:[{x1:1320,y1:620,x2:1320,y2:814,trig:{k:'button'}}],
-  buttons:[{x:800,y:536,door:0}],
-  drag:[D(260,640,1, 420,788)], arrows:[A(1080,530,2)] });
-
-LV.push({ name:'Up and Over', ch:2,
-  black:{x:170,y:F}, white:{x:1430,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1000,640,40,180], [1100,620,500,24]],
-  doors:[{x1:1020,y1:470,x2:1020,y2:640,trig:{k:'button'}}],
-  buttons:[{x:700,y:796,door:0}],
-  drag:[D(300,560,1, 820,788)] });
-
-LV.push({ name:'Switchback', ch:2,
-  black:{x:170,y:F}, white:{x:1380,y:560}, launch:{vx:300,vy:0},
-  rects:[...base(), [1200,560,400,24], [560,560,360,24]],
-  arrows:[A(0,0,1), A(0,0,2)] });
-
-LV.push({ name:'The Vault', ch:2,
-  black:{x:170,y:F}, white:{x:1330,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [1140,640,40,180], [1500,640,40,180], [1140,640,160,24], [1400,640,140,24]],
-  doors:[{x1:1300,y1:640,x2:1400,y2:640,trig:{k:'button'}}],
-  buttons:[{x:620,y:796,door:0}],
-  drag:[D(300,560,1, 1030,788)] });
-
-LV.push({ name:'Echo Timing', ch:2,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1160]]), ...walls()],
-  doors:[{x1:1280,y1:600,x2:1280,y2:814,trig:{k:'button'}}],
-  buttons:[{x:540,y:796,door:0}],
-  osc:[O(660,560,1,2,1.8)],
-  drag:[D(300,560,12, 660,788)] });
-
-LV.push({ name:'Hollow Heart', ch:2,
-  black:{x:150,y:F}, white:{x:1460,y:560}, launch:{vx:300,vy:0},
-  rects:[...base(), [560,620,220,24], [1060,640,40,180], [1300,560,300,24]],
-  doors:[{x1:1080,y1:460,x2:1080,y2:640,trig:{k:'button'}}],
-  buttons:[{x:650,y:596,door:0}],
-  arrows:[A(1270,790,12)],
-  drag:[D(260,640,1, 470,788), D(300,640,1, 836,788), D(340,640,1, 1270,560)] });
-
-// ---------------- Chapter 3 · Echo Chasm (trap doors) ----------------
-LV.push({ name:'Trap Door 101', ch:3,
-  black:{x:170,y:F}, white:{x:900,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1100]]), ...walls(),
-        [620,1000,560,40], [620,820,40,180], [1140,820,40,180]],
-  doors:[{x1:700,y1:814,x2:1100,y2:814,trig:{k:'touch',delay:0.45}}],
-  arrows:[A(520,790,2)] });
-
-LV.push({ name:'Timed Drop', ch:3,
-  black:{x:170,y:F}, white:{x:880,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1060]]), ...walls(),
-        [660,1000,480,40], [660,820,40,180], [1060,820,40,180]],
-  doors:[{x1:700,y1:814,x2:1060,y2:814,trig:{k:'timed',t:1.4}}],
-  drag:[D(300,640,2, 400,790)] });
-
-LV.push({ name:'Sprint the Span', ch:3,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[620,1060]]), ...walls()],
-  doors:[{x1:620,y1:828,x2:1060,y2:828,trig:{k:'touch',delay:0.62}}],
-  arrows:[A(520,790,3)] });
-
-LV.push({ name:'Linger and Fall', ch:3,
-  black:{x:150,y:F}, white:{x:840,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[560,1120]]), ...walls(), [520,1000,640,40], [520,820,40,180], [1120,820,40,180]],
-  doors:[{x1:560,y1:814,x2:1120,y2:814,trig:{k:'touch',delay:0.40}}],
-  arrows:[A(430,792,2)],
-  drag:[D(260,600,9, 1010,760)] });
-
-LV.push({ name:'Choose Your Fall', ch:3,
-  black:{x:150,y:F}, white:{x:1180,y:1010}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[520,820],[980,1380]]), ...walls(),
-        [480,1010,380,40],[940,1010,480,40],
-        [480,820,40,190],[820,820,40,190],[940,820,40,190],[1380,820,40,190]],
-  doors:[{x1:520,y1:814,x2:820,y2:814,trig:{k:'touch',delay:0.42}},
-         {x1:980,y1:814,x2:1380,y2:814,trig:{k:'touch',delay:0.42}}],
-  drag:[D(260,600,2, 272,792)] });
-
-LV.push({ name:'Armed Gate', ch:3,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [700,620,120,24], [1040,620,20,24]],
-  doors:[{x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}},
-         {x1:820,y1:632,x2:1040,y2:632,trig:{k:'touch',delay:0.42}}],
-  buttons:[{x:520,y:796,door:0}],
-  drag:[D(300,620,1, 600,788)] });
-
-LV.push({ name:'Chasm Run', ch:3,
-  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[440,760],[900,1240]]), ...walls()],
-  doors:[{x1:440,y1:828,x2:760,y2:828,trig:{k:'touch',delay:0.5}},
-         {x1:900,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.5}}],
-  arrows:[A(380,792,3), A(840,792,3)] });
-
-LV.push({ name:'The Oubliette', ch:3,
-  black:{x:170,y:F}, white:{x:800,y:1040}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[600,1000]]), ...walls(),
-        [560,1040,480,40],[560,820,40,220],[1000,820,40,220]],
-  doors:[{x1:600,y1:814,x2:1000,y2:814,trig:{k:'touch',delay:0.45}},
-         {x1:600,y1:930,x2:1000,y2:930,trig:{k:'touch',delay:0.45}}],
-  arrows:[A(480,792,2)],
-  drag:[D(300,560,12, 1240,720)] });
-
-LV.push({ name:'Drop In, Swing Out', ch:3,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [680,460,260,24]],
-  doors:[{x1:720,y1:456,x2:900,y2:456,trig:{k:'touch',delay:0.4}}],
-  osc:[O(810,640,2,4,2.0)],
-  drag:[D(300,600,1, 560,788)] });
-
-LV.push({ name:'Echo Chasm', ch:3,
-  black:{x:150,y:F}, white:{x:1460,y:620}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[560,1000]]), ...walls(),
-        [520,1000,560,40],[520,820,40,180],[1040,820,40,180],
-        [1300,620,300,24]],
-  doors:[{x1:560,y1:828,x2:1000,y2:828,trig:{k:'touch',delay:0.55}},
-         {x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:780,y:976,door:1}],
-  arrows:[A(760,960,1)],
-  drag:[D(260,560,1, 1240,788)] });
-
-// ---------------- Chapter 4 · Underground Lake (flippers) ----------------
-LV.push({ name:'Flip Side', ch:4,
-  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [800,660,80,160]],
-  flippers:[{x:640,y:790,h:1}],
-  arrows:[A(1100,790,3)] });
-
-LV.push({ name:'Skipping Stone', ch:4,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[520,1240]]), ...walls(), [520,990,720,40],[520,820,40,170],[1240,820,40,170]],
-  flippers:[{x:760,y:960,h:1},{x:1120,y:960,h:1}],
-  arrows:[A(440,792,2)] });
-
-LV.push({ name:'Pinball Alley', ch:4,
-  black:{x:170,y:F}, white:{x:1430,y:640}, launch:{vx:300,vy:0},
-  rects:[...base(), [980,640,60,180], [1300,640,300,24]],
-  flippers:[{x:700,y:790,h:1},{x:1180,y:790,h:1}],
-  drag:[D(300,560,2, 480,788)] });
-
-LV.push({ name:'Geyser', ch:4,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [620,200,70,420], [930,200,70,420]],
-  flippers:[{x:800,y:780,h:12}],
-  arrows:[A(810,560,12), A(810,330,2)],
-  drag:[D(300,600,2, 540,788)] });
-
-LV.push({ name:'Across the Lake', ch:4,
-  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[440,1300]]), ...walls(), [440,970,860,40],[440,820,40,150],[1300,820,40,150]],
-  flippers:[{x:620,y:940,h:1},{x:1080,y:940,h:1}],
-  arrows:[A(380,792,2)] });
-
-LV.push({ name:'Flip the Switch', ch:4,
-  black:{x:170,y:F}, white:{x:1480,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[1060,1400]]), ...walls(), [560,620,220,24]],
-  doors:[{x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:660,y:596,door:0}],
-  flippers:[{x:980,y:790,h:1}],
-  drag:[D(300,600,1, 470,788)] });
-
-LV.push({ name:'Flip the Trap', ch:4,
-  black:{x:170,y:F}, white:{x:980,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[760,1200]]), ...walls(), [720,1000,520,40],[720,820,40,180],[1200,820,40,180]],
-  doors:[{x1:760,y1:814,x2:1200,y2:814,trig:{k:'touch',delay:0.4}}],
-  flippers:[{x:560,y:790,h:2}],
-  arrows:[A(330,792,3)] });
-
-LV.push({ name:'Undertow', ch:4,
-  black:{x:150,y:F}, white:{x:1460,y:560}, launch:{vx:300,vy:0},
-  rects:[...base(), [1180,560,420,24]],
-  osc:[O(820,645,12,2,2.0)],
-  flippers:[{x:600,y:790,h:1}],
-  drag:[D(300,640,3, 360,790)] });
-
-LV.push({ name:'Lakebed Vault', ch:4,
-  black:{x:170,y:F}, white:{x:1340,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [1150,640,40,180],[1510,640,40,180],[1150,640,170,24],[1420,640,130,24]],
-  flippers:[{x:620,y:790,h:1}],
-  drag:[D(300,560,1, 852,672)] });
-
-LV.push({ name:'Lake Boss', ch:4,
-  black:{x:130,y:F}, white:{x:1460,y:620}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[440,1100]]), ...walls(), [440,970,660,40],[440,820,40,150],[1100,820,40,150],
-        [1340,620,260,24]],
-  doors:[{x1:1230,y1:480,x2:1230,y2:814,trig:{k:'button'}}],
-  buttons:[{x:380,y:796,door:0}],
-  flippers:[{x:620,y:940,h:1},{x:940,y:940,h:1}],
-  drag:[D(260,560,1, 1240,788)] });
-
-// ---------------- Chapter 5 · The Deep (portals) ----------------
-LV.push({ name:'First Warp', ch:5,
-  black:{x:170,y:F}, white:{x:300,y:330}, launch:{vx:300,vy:0},
-  rects:[...base(), [160,330,520,24], [640,156,40,174]],
-  portals:[{ax:1100,ay:790,bx:340,by:240}],
-  arrows:[A(640,790,3)] });
-
-LV.push({ name:'Warp Speed', ch:5,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[700,1240]]), ...walls()],
-  portals:[{ax:600,ay:790,bx:1280,by:600}],
-  arrows:[A(440,790,3)] });
-
-LV.push({ name:'Round Trip', ch:5,
-  black:{x:170,y:F}, white:{x:240,y:430}, launch:{vx:300,vy:0},
-  rects:[...base(), [120,430,330,24], [450,260,40,170], [620,660,90,160]],
-  portals:[{ax:1300,ay:790,bx:180,by:360}],
-  arrows:[A(880,790,3)],
-  drag:[D(300,600,1, 470,790)] });
-
-LV.push({ name:'Two Doors Down', ch:5,
-  black:{x:150,y:F}, white:{x:1440,y:520}, launch:{vx:300,vy:0},
-  rects:[...base(), [1280,520,320,24]],
-  portals:[{ax:700,ay:790,bx:300,by:300},{ax:980,ay:560,bx:1360,by:300}],
-  arrows:[A(560,790,3)],
-  drag:[D(360,560,3, 300,560)] });
-
-LV.push({ name:'Warped Switch', ch:5,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), [560,300,220,24]],
-  doors:[{x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:660,y:276,door:0}],
-  portals:[{ax:520,ay:790,bx:600,by:200}],
-  arrows:[A(360,790,3), A(900,560,3)],
-  drag:[D(300,560,2, 896,314)] });
-
-LV.push({ name:'Warp the Trap', ch:5,
-  black:{x:170,y:F}, white:{x:1100,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[800,1240]]), ...walls(), [760,1000,520,40],[760,820,40,180],[1240,820,40,180]],
-  doors:[{x1:800,y1:814,x2:1240,y2:814,trig:{k:'touch',delay:0.42}}],
-  portals:[{ax:520,ay:790,bx:900,by:520}],
-  arrows:[A(1000,650,5)] });
-
-LV.push({ name:'Warp and Flip', ch:5,
-  black:{x:170,y:F}, white:{x:1430,y:260}, launch:{vx:300,vy:0},
-  rects:[...base(), [1300,260,300,24]],
-  portals:[{ax:560,ay:790,bx:1080,by:700}],
-  flippers:[{x:1160,y:760,h:12}],
-  arrows:[A(360,790,3)],
-  drag:[D(300,560,1, 1150,454)] });
-
-LV.push({ name:'Deep Pendulum', ch:5,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[640,1180]]), ...walls()],
-  portals:[{ax:500,ay:790,bx:760,by:330}],
-  osc:[O(980,460,2,4,2.0)],
-  arrows:[A(340,790,3)] });
-
-LV.push({ name:'The Gauntlet', ch:5,
-  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[480,840]]), ...walls(), [840,560,300,24], [440,1010,440,40],[440,820,40,190],[840,820,40,230]],
-  doors:[{x1:1320,y1:600,x2:1320,y2:814,trig:{k:'button'}}],
-  buttons:[{x:1000,y:536,door:0}],
-  portals:[{ax:660,ay:980,bx:900,by:480}],
-  flippers:[{x:560,y:980,h:2}],
-  arrows:[A(400,792,3), A(1180,530,4)] });
-
-LV.push({ name:'Heart of the Mountain', ch:5,
-  black:{x:130,y:F}, white:{x:880,y:440}, launch:{vx:320,vy:0},
-  rects:[...base(), [800,440,200,24]],
-  doors:[{x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:560,y:796,door:0}],
-  portals:[{ax:1430,ay:790,bx:1320,by:600}],
-  flippers:[{x:1320,y:640,h:11}],
-  arrows:[A(360,790,3)],
-  drag:[D(300,560,10, 1180,437)] });
-
-
-// ===================================================================
-// ============ EXPANSION · 50 MORE LEVELS (ch 6-10) =================
-// tools:[T(h) | Tosc(h1,h2,p)] — all player-positioned, start parked left.
-// More filled-in cave geometry; white bats kept at reachable heights
-// (shelves <= ~210px above a reachable launch line; pits for drops).
-// ===================================================================
-
-
-// ---------- Chapter 6 · Winding Galleries (orange, enclosed) ----------
-LV.push({ name:'Low Ceiling', ch:6,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(300,1000,250), [820,250,70,300]],
-  tools:[T(2)] });
-
-LV.push({ name:'Gallery Hop', ch:6,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[640,940]]), ...walls(), roof(260,1080,250)],
-  tools:[T(2)] });
-
-LV.push({ name:'The Notch', ch:6,
-  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[640,940]]), ...walls(), roof(260,1080,260),
-        [600,286,60,260],[940,286,60,260]],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Low Shelf', ch:6,
-  black:{x:160,y:F}, white:{x:1420,y:680}, launch:{vx:300,vy:0},
-  rects:[...base(), [1240,680,360,24], roof(220,1160,220)],
-  tools:[T(1)] });
-
-LV.push({ name:'Pillar Run', ch:6,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), [560,246,60,300],[860,246,60,300],[1160,246,60,300],
-        roof(240,1120,220)],
-  tools:[T(3),T(3)] });
-
-LV.push({ name:'Swinging Gallery', ch:6,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1080]]), ...walls(), roof(260,1080,250)],
-  tools:[Tosc(1,3,2.0)] });
-
-LV.push({ name:'Button Gallery', ch:6,
-  black:{x:170,y:F}, white:{x:1400,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,240),[820,300,60,300]],
-  doors:[{x1:1120,y1:600,x2:1120,y2:814,trig:{k:'button'}}],
-  buttons:[{x:520,y:796,door:0}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Drop Gallery', ch:6,
-  black:{x:170,y:F}, white:{x:900,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1100]]), ...walls(), [620,1000,560,40],[620,820,40,180],[1140,820,40,180],
-        roof(260,1080,250)],
-  doors:[{x1:700,y1:828,x2:1100,y2:828,trig:{k:'touch',delay:0.45}}],
-  tools:[T(2)] });
-
-LV.push({ name:'Bank Gallery', ch:6,
-  black:{x:160,y:F}, white:{x:240,y:600}, launch:{vx:300,vy:0},
-  rects:[...base(), [120,600,300,24], roof(220,1160,220),[700,620,60,200]],
-  tools:[T(3),T(11)] });
-
-LV.push({ name:'Gallery Gauntlet', ch:6,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[560,860]]), ...walls(), roof(240,1120,220),
-        [1040,246,60,300]],
-  tools:[T(2),T(3)] });
-
-// ---------- Chapter 7 · Dusk Caverns (purple) ----------
-LV.push({ name:'Twilight Gap', ch:7,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[680,980]]), ...walls(), roof(260,1080,240)],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Acrobats', ch:7,
-  black:{x:600,y:F}, white:{x:1100,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[860,1000]]), ...walls(), roof(220,1160,200)],
-  tools:[T(2)] });
-
-LV.push({ name:'Dusk Drop', ch:7,
-  black:{x:170,y:F}, white:{x:1020,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[800,1240]]), ...walls(), [760,1000,520,40],[760,820,40,180],[1240,820,40,180],
-        roof(260,1080,240)],
-  doors:[{x1:800,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.42}}],
-  tools:[Tosc(2,4,2.0)] });
-
-LV.push({ name:'Hanging Stones', ch:7,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), [500,0,60,420],[800,0,60,480],[1100,0,60,420],
-        roof(240,80,160), roof(1280,200,160)],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Twin Switches', ch:7,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,220)],
-  doors:[{x1:600,y1:600,x2:600,y2:814,trig:{k:'button'}},
-         {x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:380,y:796,door:0},{x:760,y:796,door:1}],
-  tools:[T(3)] });
-
-LV.push({ name:'Purple Pinball', ch:7,
-  black:{x:170,y:F}, white:{x:1430,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1280,620,320,24],[940,640,60,180], roof(220,1160,220)],
-  flippers:[{x:680,y:790,h:1},{x:1140,y:790,h:1}],
-  tools:[T(2)] });
-
-LV.push({ name:'Night Pendulum', ch:7,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[640,1120]]), ...walls(), roof(240,1120,240)],
-  tools:[Tosc(1,3,1.8),T(2)] });
-
-LV.push({ name:'Warp Dusk', ch:7,
-  black:{x:170,y:F}, white:{x:300,y:420}, launch:{vx:300,vy:0},
-  rects:[...base(), [160,420,360,24], roof(700,860,220)],
-  portals:[{ax:1100,ay:790,bx:340,by:340}],
-  tools:[T(3)] });
-
-LV.push({ name:'The Cellars', ch:7,
-  black:{x:170,y:F}, white:{x:820,y:1040}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[600,1000]]), ...walls(),
-        [560,1040,480,40],[560,820,40,220],[1000,820,40,220],
-        roof(260,1080,240)],
-  doors:[{x1:600,y1:828,x2:1000,y2:828,trig:{k:'touch',delay:0.45}}],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Dusk Boss', ch:7,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[520,860]]), ...walls(),
-        [980,560,60,260], roof(240,1120,200)],
-  doors:[{x1:1200,y1:560,x2:1200,y2:814,trig:{k:'button'}}],
-  buttons:[{x:700,y:796,door:0}],
-  flippers:[{x:600,y:790,h:1}],
-  tools:[T(2),T(2)] });
-
-// ---------- Chapter 8 · Midnight Vaults (deep blue) ----------
-LV.push({ name:'Sealed Vault', ch:8,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,240),[820,286,60,300]],
-  doors:[{x1:1120,y1:600,x2:1120,y2:814,trig:{k:'button'}}],
-  buttons:[{x:520,y:796,door:0}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Deep Shelf', ch:8,
-  black:{x:170,y:F}, white:{x:1380,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1180,620,420,26], roof(220,1000,200)],
-  tools:[T(1)] });
-
-LV.push({ name:'Vault Trap', ch:8,
-  black:{x:170,y:F}, white:{x:980,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[760,1200]]), ...walls(), [720,1000,520,40],[720,820,40,180],[1200,820,40,180],
-        roof(260,1080,230)],
-  doors:[{x1:760,y1:828,x2:1200,y2:828,trig:{k:'touch',delay:0.42}}],
-  flippers:[{x:540,y:790,h:2}],
-  tools:[T(2)] });
-
-LV.push({ name:'Midnight Maze', ch:8,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), [480,0,60,460],[1040,0,60,460],
-        roof(240,200,160)],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Blue Portal', ch:8,
-  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,1240]]), ...walls(), roof(240,1120,220)],
-  portals:[{ax:600,ay:790,bx:1300,by:700}],
-  tools:[T(2)] });
-
-LV.push({ name:'Twin Portals', ch:8,
-  black:{x:150,y:F}, white:{x:1470,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1340,620,260,24],[760,620,80,200], roof(220,640,220)],
-  portals:[{ax:560,ay:790,bx:900,by:640},{ax:1180,ay:680,bx:1380,by:560}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Vault Pendulum', ch:8,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,240),[900,560,60,260]],
-  tools:[Tosc(12,2,1.8),T(2)] });
-
-LV.push({ name:'The Catacomb', ch:8,
-  black:{x:170,y:F}, white:{x:1400,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[520,760],[1000,1240]]), ...walls(),
-        roof(240,1120,220)],
-  doors:[{x1:520,y1:828,x2:760,y2:828,trig:{k:'touch',delay:0.5}},
-         {x1:1000,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.5}}],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Flip Vault', ch:8,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[440,1100]]), ...walls(), [440,970,660,40],[440,820,40,150],[1100,820,40,150],
-        roof(240,1120,200)],
-  doors:[{x1:1230,y1:560,x2:1230,y2:814,trig:{k:'button'}}],
-  buttons:[{x:380,y:796,door:0}],
-  flippers:[{x:620,y:940,h:1},{x:940,y:940,h:1}],
-  tools:[T(1)] });
-
-LV.push({ name:'Midnight Boss', ch:8,
-  black:{x:150,y:F}, white:{x:1460,y:620}, launch:{vx:320,vy:0},
-  rects:[...base(), [1300,620,300,24],[980,640,60,180],
-        roof(220,1160,200)],
-  portals:[{ax:560,ay:790,bx:1080,by:700}],
-  flippers:[{x:1160,y:760,h:12}],
-  tools:[T(3)] });
-
-// ---------- Chapter 9 · The Abyss (near-black blue) ----------
-LV.push({ name:'Narrow Descent', ch:9,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[700,940]]), ...walls(), roof(260,1080,240),
-        [660,286,60,260],[940,286,60,260]],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Abyss Bridge', ch:9,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[420,1180]]), ...walls(), [420,1000,760,40],[420,820,40,180],[1180,820,40,180],
-        roof(240,1120,220)],
-  flippers:[{x:600,y:970,h:1},{x:900,y:970,h:1},{x:1140,y:970,h:1}],
-  tools:[T(2)] });
-
-LV.push({ name:'Black Vault', ch:9,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,200),[820,286,60,300],[520,286,60,300]],
-  doors:[{x1:1120,y1:600,x2:1120,y2:814,trig:{k:'button'}}],
-  buttons:[{x:360,y:796,door:0}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Falling Dark', ch:9,
-  black:{x:170,y:F}, white:{x:1080,y:1040}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[600,1000]]), ...walls(),
-        [560,1040,520,40],[560,820,40,220],[1080,820,40,220],
-        roof(260,1080,230)],
-  doors:[{x1:600,y1:828,x2:1080,y2:828,trig:{k:'touch',delay:0.4}}],
-  portals:[{ax:520,ay:790,bx:980,by:640}],
-  tools:[T(3)] });
-
-LV.push({ name:'Abyssal Maze', ch:9,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), [460,0,60,480],[1060,0,60,480],
-        roof(240,180,140)],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Twin Sweep', ch:9,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[600,1120]]), ...walls(), roof(240,1120,220)],
-  tools:[Tosc(1,3,1.6),Tosc(2,4,1.8)] });
-
-LV.push({ name:'Deep Trap', ch:9,
-  black:{x:170,y:F}, white:{x:1040,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[800,1240]]), ...walls(), [760,1000,520,40],[760,820,40,180],[1240,820,40,180],
-        roof(260,1080,220)],
-  doors:[{x1:800,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.4}}],
-  flippers:[{x:540,y:790,h:2}],
-  tools:[T(2)] });
-
-LV.push({ name:'Chasm of Doors', ch:9,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), roof(220,1160,200)],
-  doors:[{x1:600,y1:600,x2:600,y2:814,trig:{k:'button'}},
-         {x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:380,y:796,door:0},{x:820,y:796,door:1}],
-  tools:[T(3)] });
-
-LV.push({ name:'Portal Abyss', ch:9,
-  black:{x:170,y:F}, white:{x:1440,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1320,620,280,24],[760,620,80,200], roof(220,640,200)],
-  portals:[{ax:560,ay:790,bx:980,by:640}],
-  flippers:[{x:1300,y:760,h:12}],
-  tools:[T(3)] });
-
-LV.push({ name:'Abyss Boss', ch:9,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[480,840]]), ...walls(),
-        [440,1010,440,40],[440,820,40,190],[840,820,40,230],
-        roof(240,1120,200)],
-  doors:[{x1:1320,y1:600,x2:1320,y2:814,trig:{k:'button'}}],
-  buttons:[{x:1000,y:796,door:0}],
-  portals:[{ax:660,ay:980,bx:900,by:640}],
-  flippers:[{x:560,y:980,h:2}],
-  tools:[T(3),T(2)] });
-
-// ---------- Chapter 10 · The Heart (night, mixed) ----------
-LV.push({ name:'Heartway', ch:10,
-  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,220),[640,286,60,260],[980,286,60,260]],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Sweep Chamber', ch:10,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[560,1040]]), ...walls(), roof(240,1120,220)],
-  tools:[Tosc(1,3,1.6),T(2)] });
-
-LV.push({ name:'Triple Vault', ch:10,
-  black:{x:170,y:F}, white:{x:1340,y:F}, launch:{vx:300,vy:0},
-  rects:[...base(), roof(220,1160,200),[480,286,60,260],[800,286,60,260]],
-  doors:[{x1:1180,y1:600,x2:1180,y2:814,trig:{k:'button'}}],
-  buttons:[{x:340,y:796,door:0}],
-  flippers:[{x:1020,y:790,h:1}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Heart Trap', ch:10,
-  black:{x:170,y:F}, white:{x:800,y:1000}, launch:{vx:300,vy:0},
-  rects:[...floorPits([[600,1000]]), ...walls(),
-        [560,1000,520,40],[560,820,40,180],[1000,820,40,180],
-        roof(260,1080,220)],
-  doors:[{x1:600,y1:828,x2:1000,y2:828,trig:{k:'touch',delay:0.45}}],
-  tools:[T(2)] });
-
-LV.push({ name:'Labyrinth', ch:10,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...base(), [440,0,60,500],[1000,0,60,500],
-        roof(240,160,140)],
-  tools:[T(2),T(2)] });
-
-LV.push({ name:'Portal Heart', ch:10,
-  black:{x:170,y:F}, white:{x:1440,y:620}, launch:{vx:300,vy:0},
-  rects:[...base(), [1320,620,280,24],[760,620,80,200], roof(220,640,200)],
-  portals:[{ax:560,ay:790,bx:980,by:640}],
-  flippers:[{x:1300,y:760,h:12}],
-  tools:[Tosc(2,4,2.0),T(3)] });
-
-LV.push({ name:'Everything', ch:10,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[480,820]]), ...walls(),
-        [840,560,60,260], roof(240,1120,200),
-        [440,1010,360,40],[440,820,40,190]],
-  doors:[{x1:1120,y1:560,x2:1120,y2:814,trig:{k:'button'}}],
-  buttons:[{x:980,y:986,door:0}],
-  portals:[{ax:620,ay:980,bx:900,by:640}],
-  flippers:[{x:560,y:980,h:2}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'The Long Night', ch:10,
-  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
-  rects:[...floorPits([[440,760],[900,1240]]), ...walls(),
-        roof(240,1120,220)],
-  doors:[{x1:440,y1:828,x2:760,y2:828,trig:{k:'touch',delay:0.5}},
-         {x1:900,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.5}}],
-  tools:[T(3),T(2)] });
-
-LV.push({ name:'Heart of Darkness', ch:10,
-  black:{x:150,y:F}, white:{x:1460,y:620}, launch:{vx:320,vy:0},
-  rects:[...base(), [1300,620,300,24],[980,640,60,180],
-        roof(220,1160,180)],
-  portals:[{ax:560,ay:790,bx:1080,by:700}],
-  flippers:[{x:1160,y:760,h:12}],
-  tools:[T(3),Tosc(1,3,2.0)] });
-
-LV.push({ name:'The Heart', ch:10,
-  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
-  rects:[...floorPits([[560,900]]), ...walls(),
-        [820,560,60,260], roof(240,1120,180),
-        [520,1000,560,40],[520,820,40,180],[1040,820,40,180]],
-  doors:[{x1:560,y1:828,x2:900,y2:828,trig:{k:'touch',delay:0.5}}],
-  portals:[{ax:980,ay:790,bx:1090,by:700}],
-  flippers:[{x:700,y:760,h:1}],
-  tools:[Tosc(12,2,2.0),T(3)] });
+const R = (x,y,w,h)=>[x,y,w,h];
+// exit ledge under the white bat (top at y=400): ball landing here wins
+const exitLedge = (cx)=>R(cx-150,400,300,26);
+// little perch under the black bat so the launch is clean
+const startPerch = (cx)=>R(cx-130,400,260,22);
+
+// 1 · First Drop — fall to the floor, loft up to the exit ledge.
+LV.push({ name:'First Drop', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:230,y:360}, white:{x:1360,y:360}, launch:{vx:240,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(230), exitLedge(1360),
+    R(0,660,1600,40),
+  ],
+  tools:[ T(12), T(12) ] });
+
+// 2 · Over the Gap — a pit between the landing floor and the exit.
+LV.push({ name:'Over the Gap', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,660,720,40), R(940,660,660,40),
+  ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 3 · Step Down — descending steps lead to a high exit.
+LV.push({ name:'Step Down', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(80,520,340,26), R(540,610,340,26), R(1000,700,300,26),
+    R(0,840,1600,40),
+  ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 4 · Windmill Hall — three gentle windmills spin above the floor.
+LV.push({ name:'Windmill Hall', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,720,1600,40),
+  ],
+  windmills:[ {x:560,y:600,len:80,speed:1.0,dir:1},
+              {x:820,y:600,len:80,speed:1.0,dir:-1},
+              {x:1080,y:600,len:80,speed:1.0,dir:1} ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 5 · The Cog — a spinning cog sits in the cavern floor.
+LV.push({ name:'The Cog', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(210), exitLedge(1390),
+    R(0,700,1600,40),
+  ],
+  cogs:[ {x:780,y:640,r:90,spin:1,surf:300} ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 6 · Rubber Cavern — bouncy pads on the floor.
+LV.push({ name:'Rubber Cavern', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,720,1600,40),
+  ],
+  bouncy:[ R(620,690,240,30), R(980,690,240,30) ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 7 · Trapdoor — a button drops a two-flap trapdoor in the floor.
+LV.push({ name:'Trapdoor', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(0,660,700,40), R(900,660,700,40),
+  ],
+  buttons:[ {x:360,y:636,door:0} ],
+  doors:[ {x1:700,y1:660,x2:900,y2:660,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 8 · Secret Hollow — a black pillar hides a secret passage (ignored by verifier).
+LV.push({ name:'Secret Hollow', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(210), exitLedge(1390),
+    R(0,660,1600,40),
+    R(720,440,40,120),
+  ],
+  secrets:[ R(860,440,120,220) ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 9 · Crag Run — dense crags and two windmills.
+LV.push({ name:'Crag Run', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(60,560,360,26), R(560,650,320,26), R(1020,580,320,26),
+    R(300,460,40,100), R(760,460,40,120),
+    R(0,840,1600,40),
+  ],
+  windmills:[ {x:520,y:740,len:70,speed:1.0,dir:1},
+              {x:980,y:740,len:70,speed:1.0,dir:-1} ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 10 · The Hanging Deep — finale: a cog, a bouncy pad, a button trapdoor, a secret.
+LV.push({ name:'The Hanging Deep', ch:1, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(0,700,560,40), R(860,700,740,40),
+    R(0,860,1600,40),
+  ],
+  cogs:[ {x:700,y:600,r:80,spin:-1,surf:300} ],
+  bouncy:[ R(1040,670,200,30) ],
+  buttons:[ {x:320,y:676,door:0} ],
+  doors:[ {x1:560,y1:700,x2:860,y2:700,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1180,500,100,200) ],
+  tools:[ T(12), T(12), T(1) ] });
 
 LV.forEach((l,i)=>{ l.id=i+1; });
 return LV;
@@ -1209,7 +771,7 @@ return LV;
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":220,"y":770}],"score":901,"two":741,"three":881,"robust":1},{"id":2,"ok":true,"sol":[{"x":656,"y":760}],"score":895,"two":735,"three":875,"robust":1},{"id":3,"ok":true,"sol":[{"x":1076,"y":800}],"score":895,"two":735,"three":875,"robust":1},{"id":4,"ok":true,"sol":[{"x":592,"y":760}],"score":883,"two":723,"three":863,"robust":1},{"id":5,"ok":true,"sol":[{"x":528,"y":696},{"x":464,"y":760}],"score":889,"two":729,"three":869,"robust":1},{"id":6,"ok":true,"sol":[{"x":144,"y":760}],"score":932,"two":772,"three":912,"robust":1},{"id":7,"ok":true,"sol":[{"x":120,"y":670}],"score":897,"two":737,"three":877,"robust":1},{"id":8,"ok":true,"sol":[{"x":844,"y":692},{"x":848,"y":792}],"score":889,"two":729,"three":869,"robust":1},{"id":9,"ok":true,"sol":[{"x":1200,"y":792},{"x":1156,"y":356},{"x":1114,"y":567}],"score":857,"two":697,"three":837,"robust":1},{"id":10,"ok":true,"sol":[{"x":592,"y":696},{"x":592,"y":760}],"score":891,"two":731,"three":871,"robust":1},{"id":11,"ok":true,"sol":[{"x":244,"y":794}],"score":898,"two":738,"three":878,"robust":1},{"id":12,"ok":true,"sol":[{"x":568,"y":632},{"x":284,"y":770}],"score":829,"two":669,"three":809,"robust":1},{"id":13,"ok":true,"sol":[{"x":220,"y":770},{"x":284,"y":770}],"score":893,"two":733,"three":873,"robust":1},{"id":14,"ok":true,"sol":[{"x":592,"y":632},{"x":322,"y":800}],"score":844,"two":684,"three":824,"robust":1},{"id":15,"ok":true,"sol":[{"x":270,"y":758},{"x":360,"y":746}],"score":837,"two":677,"three":817,"robust":1},{"id":16,"ok":true,"sol":[{"x":900,"y":800}],"score":889,"two":729,"three":869,"robust":1},{"id":17,"ok":true,"sol":[{"x":920,"y":736},{"x":1081,"y":557}],"score":886,"two":726,"three":866,"robust":1},{"id":18,"ok":true,"sol":[{"x":976,"y":760}],"score":881,"two":721,"three":861,"robust":1},{"id":19,"ok":true,"sol":[{"x":764,"y":780},{"x":860,"y":800}],"score":877,"two":717,"three":857,"robust":1},{"id":20,"ok":true,"sol":[{"x":976,"y":760},{"x":962,"y":554},{"x":720,"y":760},{"x":848,"y":632}],"score":872,"two":712,"three":852,"robust":1},{"id":21,"ok":true,"sol":[{"x":320,"y":770}],"score":908,"two":748,"three":888,"robust":1},{"id":22,"ok":true,"sol":[{"x":120,"y":670}],"score":931,"two":771,"three":911,"robust":1},{"id":23,"ok":true,"sol":[{"x":220,"y":770}],"score":893,"two":733,"three":873,"robust":1},{"id":24,"ok":true,"sol":[{"x":80,"y":800},{"x":144,"y":760}],"score":889,"two":729,"three":869,"robust":1},{"id":25,"ok":true,"sol":[{"x":286,"y":784}],"score":894,"two":734,"three":874,"robust":1},{"id":26,"ok":true,"sol":[{"x":80,"y":120}],"score":897,"two":737,"three":877,"robust":1},{"id":27,"ok":true,"sol":[{"x":320,"y":770},{"x":284,"y":770}],"score":890,"two":730,"three":870,"robust":1},{"id":28,"ok":true,"sol":[{"x":220,"y":732},{"x":284,"y":770}],"score":804,"two":644,"three":784,"robust":1},{"id":29,"ok":true,"sol":[{"x":320,"y":770},{"x":184,"y":670}],"score":897,"two":737,"three":877,"robust":1},{"id":30,"ok":true,"sol":[{"x":1040,"y":760},{"x":756,"y":760}],"score":875,"two":715,"three":855,"robust":1},{"id":31,"ok":true,"sol":[{"x":220,"y":770}],"score":884,"two":724,"three":864,"robust":1},{"id":32,"ok":true,"sol":[{"x":570,"y":770}],"score":881,"two":721,"three":861,"robust":1},{"id":33,"ok":true,"sol":[{"x":912,"y":696}],"score":889,"two":729,"three":869,"robust":1},{"id":34,"ok":true,"sol":[{"x":999,"y":381},{"x":784,"y":760},{"x":1182,"y":416}],"score":893,"two":733,"three":873,"robust":1},{"id":35,"ok":true,"sol":[{"x":220,"y":770}],"score":874,"two":714,"three":854,"robust":1},{"id":36,"ok":true,"sol":[{"x":1016,"y":696}],"score":873,"two":713,"three":853,"robust":1},{"id":37,"ok":true,"sol":[{"x":220,"y":770}],"score":825,"two":665,"three":805,"robust":1},{"id":38,"ok":true,"sol":[{"x":898,"y":720},{"x":944,"y":408}],"score":874,"two":714,"three":854,"robust":0.8888888888888888},{"id":39,"ok":true,"sol":[{"x":1040,"y":800}],"score":866,"two":706,"three":846,"robust":1},{"id":40,"ok":true,"sol":[{"x":1080,"y":720}],"score":864,"two":704,"three":844,"robust":1},{"id":41,"ok":true,"sol":[{"x":220,"y":770}],"score":798,"two":638,"three":778,"robust":1},{"id":42,"ok":true,"sol":[{"x":120,"y":670}],"score":880,"two":720,"three":860,"robust":1},{"id":43,"ok":true,"sol":[{"x":320,"y":670},{"x":384,"y":800}],"score":791,"two":631,"three":771,"robust":1},{"id":44,"ok":true,"sol":[{"x":784,"y":504},{"x":656,"y":760}],"score":772,"two":612,"three":752,"robust":1},{"id":45,"ok":true,"sol":[{"x":400,"y":760},{"x":144,"y":760},{"x":388,"y":760}],"score":836,"two":676,"three":816,"robust":1},{"id":46,"ok":true,"sol":[{"x":120,"y":670}],"score":859,"two":699,"three":839,"robust":1},{"id":47,"ok":true,"sol":[{"x":1428,"y":558},{"x":1168,"y":440}],"score":817,"two":657,"three":797,"robust":1},{"id":48,"ok":true,"sol":[{"x":320,"y":770},{"x":284,"y":770}],"score":856,"two":696,"three":836,"robust":1},{"id":49,"ok":true,"sol":[{"x":170,"y":720},{"x":384,"y":750}],"score":711,"two":551,"three":691,"robust":1},{"id":50,"ok":true,"sol":[{"x":120,"y":670},{"x":1168,"y":440}],"score":835,"two":675,"three":815,"robust":1},{"id":51,"ok":true,"sol":[{"x":120,"y":670}],"score":897,"two":737,"three":877,"robust":1},{"id":52,"ok":true,"sol":[{"x":592,"y":760}],"score":895,"two":735,"three":875,"robust":1},{"id":53,"ok":true,"sol":[{"x":656,"y":760},{"x":80,"y":120}],"score":896,"two":736,"three":876,"robust":1},{"id":54,"ok":true,"sol":[{"x":1104,"y":760}],"score":890,"two":730,"three":870,"robust":1},{"id":55,"ok":true,"sol":[{"x":220,"y":770},{"x":284,"y":770}],"score":893,"two":733,"three":873,"robust":1},{"id":56,"ok":true,"sol":[{"x":728,"y":792}],"score":891,"two":731,"three":871,"robust":0.6666666666666666},{"id":57,"ok":true,"sol":[{"x":320,"y":770},{"x":184,"y":670}],"score":900,"two":740,"three":880,"robust":1},{"id":58,"ok":true,"sol":[{"x":120,"y":670}],"score":933,"two":773,"three":913,"robust":1},{"id":59,"ok":true,"sol":[{"x":270,"y":720},{"x":210,"y":746}],"score":870,"two":710,"three":850,"robust":1},{"id":60,"ok":true,"sol":[{"x":528,"y":760},{"x":284,"y":770}],"score":891,"two":731,"three":871,"robust":1},{"id":61,"ok":true,"sol":[{"x":656,"y":760},{"x":80,"y":120}],"score":895,"two":735,"three":875,"robust":1},{"id":62,"ok":true,"sol":[{"x":592,"y":760}],"score":959,"two":799,"three":939,"robust":1},{"id":63,"ok":true,"sol":[{"x":120,"y":670}],"score":918,"two":758,"three":898,"robust":1},{"id":64,"ok":true,"sol":[{"x":120,"y":670},{"x":184,"y":670}],"score":893,"two":733,"three":873,"robust":1},{"id":65,"ok":true,"sol":[{"x":244,"y":794}],"score":898,"two":738,"three":878,"robust":1},{"id":66,"ok":true,"sol":[{"x":336,"y":760}],"score":875,"two":715,"three":855,"robust":1},{"id":67,"ok":true,"sol":[{"x":752,"y":792},{"x":464,"y":792}],"score":885,"two":725,"three":865,"robust":0.7777777777777778},{"id":68,"ok":true,"sol":[{"x":220,"y":770}],"score":612,"two":452,"three":592,"robust":1},{"id":69,"ok":true,"sol":[{"x":120,"y":670},{"x":384,"y":670}],"score":938,"two":778,"three":918,"robust":1},{"id":70,"ok":true,"sol":[{"x":872,"y":632},{"x":400,"y":760}],"score":859,"two":699,"three":839,"robust":1},{"id":71,"ok":true,"sol":[{"x":320,"y":770},{"x":284,"y":770}],"score":897,"two":737,"three":877,"robust":1},{"id":72,"ok":true,"sol":[{"x":1038,"y":792}],"score":863,"two":703,"three":843,"robust":1},{"id":73,"ok":true,"sol":[{"x":120,"y":670}],"score":823,"two":663,"three":803,"robust":1},{"id":74,"ok":true,"sol":[{"x":120,"y":670},{"x":184,"y":670}],"score":893,"two":733,"three":873,"robust":1},{"id":75,"ok":true,"sol":[{"x":244,"y":770}],"score":893,"two":733,"three":873,"robust":1},{"id":76,"ok":true,"sol":[{"x":360,"y":736},{"x":1032,"y":680}],"score":888,"two":728,"three":868,"robust":1},{"id":77,"ok":true,"sol":[{"x":796,"y":724},{"x":608,"y":788}],"score":822,"two":662,"three":802,"robust":1},{"id":78,"ok":true,"sol":[{"x":120,"y":670},{"x":284,"y":770}],"score":898,"two":738,"three":878,"robust":1},{"id":79,"ok":true,"sol":[{"x":80,"y":120}],"score":867,"two":707,"three":847,"robust":1},{"id":80,"ok":true,"sol":[{"x":1144,"y":512}],"score":880,"two":720,"three":860,"robust":1},{"id":81,"ok":true,"sol":[{"x":640,"y":736},{"x":80,"y":120}],"score":895,"two":735,"three":875,"robust":1},{"id":82,"ok":true,"sol":[{"x":472,"y":736}],"score":880,"two":720,"three":860,"robust":1},{"id":83,"ok":true,"sol":[{"x":320,"y":770},{"x":284,"y":770}],"score":897,"two":737,"three":877,"robust":1},{"id":84,"ok":true,"sol":[{"x":220,"y":770}],"score":746,"two":586,"three":726,"robust":1},{"id":85,"ok":true,"sol":[{"x":120,"y":670},{"x":184,"y":670}],"score":893,"two":733,"three":873,"robust":1},{"id":86,"ok":true,"sol":[{"x":820,"y":800},{"x":332,"y":800}],"score":892,"two":732,"three":872,"robust":0.5555555555555556},{"id":87,"ok":true,"sol":[{"x":244,"y":794}],"score":829,"two":669,"three":809,"robust":1},{"id":88,"ok":true,"sol":[{"x":220,"y":770}],"score":893,"two":733,"three":873,"robust":1},{"id":89,"ok":true,"sol":[{"x":1200,"y":536}],"score":866,"two":706,"three":846,"robust":1},{"id":90,"ok":true,"sol":[{"x":296,"y":770},{"x":284,"y":800}],"score":688,"two":528,"three":668,"robust":1},{"id":91,"ok":true,"sol":[{"x":120,"y":670},{"x":184,"y":670}],"score":897,"two":737,"three":877,"robust":1},{"id":92,"ok":true,"sol":[{"x":808,"y":800},{"x":444,"y":736}],"score":887,"two":727,"three":867,"robust":1},{"id":93,"ok":true,"sol":[{"x":320,"y":770},{"x":284,"y":770}],"score":891,"two":731,"three":871,"robust":1},{"id":94,"ok":true,"sol":[{"x":120,"y":670}],"score":942,"two":782,"three":922,"robust":1},{"id":95,"ok":true,"sol":[{"x":120,"y":670},{"x":184,"y":670}],"score":893,"two":733,"three":873,"robust":1},{"id":96,"ok":true,"sol":[{"x":1224,"y":496},{"x":168,"y":736}],"score":875,"two":715,"three":855,"robust":1},{"id":97,"ok":true,"sol":[{"x":696,"y":568},{"x":696,"y":544}],"score":800,"two":640,"three":780,"robust":1},{"id":98,"ok":true,"sol":[{"x":220,"y":770},{"x":184,"y":670}],"score":890,"two":730,"three":870,"robust":1},{"id":99,"ok":true,"sol":[{"x":1098,"y":496},{"x":1136,"y":648}],"score":883,"two":723,"three":863,"robust":1},{"id":100,"ok":true,"sol":[{"x":420,"y":800},{"x":184,"y":770}],"score":865,"two":705,"three":845,"robust":0.7777777777777778}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":240,"y":444,"h":3},{"x":1421,"y":623,"h":1}],"score":856,"two":696,"three":836,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":402,"y":378,"h":4},{"x":1353,"y":739,"h":7},{"x":1273,"y":549,"h":9},{"x":976,"y":638,"h":1}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":251,"y":398,"h":3},{"x":668,"y":458,"h":3}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":1269,"y":755,"h":8},{"x":930,"y":588,"h":1},{"x":180,"y":410,"h":2},{"x":960,"y":717,"h":1}],"score":861,"two":701,"three":841,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":950,"y":410,"h":2},{"x":1415,"y":559,"h":1},{"x":1526,"y":662,"h":10},{"x":365,"y":521,"h":2}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":950,"y":740,"h":9},{"x":249,"y":559,"h":10},{"x":1232,"y":320,"h":3}],"score":852,"two":692,"three":832,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":156,"y":398,"h":4},{"x":950,"y":630,"h":1},{"x":1355,"y":274,"h":5}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":159,"y":545,"h":10},{"x":930,"y":586,"h":1},{"x":419,"y":751,"h":10}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":915,"y":391,"h":2},{"x":358,"y":441,"h":4},{"x":791,"y":185,"h":1}],"score":899,"two":739,"three":879,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":917,"y":168,"h":5},{"x":1370,"y":709,"h":3},{"x":400,"y":630,"h":1}],"score":853,"two":693,"three":833,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i]; l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; });
 
@@ -1300,37 +862,168 @@ const Render=(()=>{
     rg.addColorStop(0,P.glow+'66'); rg.addColorStop(.5,P.glow+'22'); rg.addColorStop(1,P.glow+'00');
     ctx.fillStyle=rg; ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
   }
+  // small deterministic hash so each rock's jaggedness is stable frame-to-frame
+  function rh(n){ const x=Math.sin(n*127.1)*43758.5; return x-Math.floor(x); }
+  function rockShape(a,w,h,seed,col0,col1,rim){
+    const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
+    g.addColorStop(0,col0); g.addColorStop(1,col1);
+    ctx.fillStyle=g;
+    // jagged top edge
+    const steps=Math.max(3,Math.round(w/34));
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y+6);
+    for(let i=0;i<=steps;i++){
+      const fx=a.x+(w*i/steps);
+      const jut=(h>50? (rh(seed+i)*10-3) : (rh(seed+i)*5-1))*VIEW.s;
+      ctx.lineTo(fx, a.y - jut);
+    }
+    ctx.lineTo(a.x+w, a.y+h);
+    ctx.lineTo(a.x, a.y+h);
+    ctx.closePath(); ctx.fill();
+    // rim highlight along the jagged top
+    ctx.strokeStyle=rim; ctx.globalAlpha=0.55; ctx.lineWidth=1.6*VIEW.s;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y+6);
+    for(let i=0;i<=steps;i++){const fx=a.x+(w*i/steps);const jut=(h>50?(rh(seed+i)*10-3):(rh(seed+i)*5-1))*VIEW.s;ctx.lineTo(fx,a.y-jut);}
+    ctx.stroke(); ctx.globalAlpha=1;
+    // a few speckle cracks
+    ctx.fillStyle=rim; ctx.globalAlpha=0.18;
+    for(let i=0;i<Math.max(1,w/90);i++){ const sx=a.x+rh(seed+i*3.7)*w, sy=a.y+8+rh(seed+i*5.3)*(h-12); ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
+    ctx.globalAlpha=1;
+  }
   function rock(L){
     const P=pal();
     ctx.save();
-    for(const r of (L.rects||[])){
+    for(let ri=0;ri<(L.rects||[]).length;ri++){
+      const r=L.rects[ri];
       const a=toScreen(r[0],r[1]);
       const w=r[2]*VIEW.s,h=r[3]*VIEW.s;
       if(r[1]<-50||r[0]<-40||r[0]>1570) continue; // skip frame walls visually
-      const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
-      g.addColorStop(0,P.rock[0]); g.addColorStop(1,P.rock[1]);
-      ctx.fillStyle=g;
-      rr(a.x,a.y,w,h,Math.min(10*VIEW.s,h/2,w/2)); ctx.fill();
-      ctx.strokeStyle=P.rim; ctx.globalAlpha=0.5; ctx.lineWidth=1.5; ctx.stroke(); ctx.globalAlpha=1;
-      // top rim highlight
-      ctx.fillStyle=P.rim; ctx.globalAlpha=0.6; ctx.fillRect(a.x,a.y,w,2); ctx.globalAlpha=1;
+      rockShape(a,w,h,ri*9+1,P.rock[0],P.rock[1],P.rim);
+    }
+    // secret passages: drawn to look like solid rock, but the ball passes through.
+    for(let si=0;si<(L.secrets||[]).length;si++){
+      const r=L.secrets[si];
+      const a=toScreen(r[0],r[1]);
+      rockShape(a,r[2]*VIEW.s,r[3]*VIEW.s,800+si*13,P.rock[0],P.rock[1],P.rim);
     }
     ctx.restore();
+  }
+  function cogs(L,w){
+    (L.cogs||[]).forEach((c)=>{
+      const p=toScreen(c.x,c.y); const R=c.r*VIEW.s;
+      const t=performance.now()/1000;
+      const ang=t*(c.spin||1)*1.1;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang);
+      // teeth
+      ctx.fillStyle='#46506e';
+      const teeth=12;
+      for(let i=0;i<teeth;i++){ ctx.rotate(Math.PI*2/teeth);
+        ctx.fillRect(-6*VIEW.s, -R-7*VIEW.s, 12*VIEW.s, 12*VIEW.s); }
+      // body
+      const g=ctx.createRadialGradient(0,0,R*0.2,0,0,R);
+      g.addColorStop(0,'#2c3450'); g.addColorStop(1,'#1a2238');
+      ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
+      ctx.strokeStyle='#6678a6'; ctx.lineWidth=2*VIEW.s; ctx.stroke();
+      // spokes
+      ctx.strokeStyle='#5a6b96'; ctx.lineWidth=4*VIEW.s;
+      for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,R*0.8);ctx.stroke();}
+      ctx.fillStyle='#7e90c0'; ctx.beginPath();ctx.arc(0,0,R*0.16,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function windmills(L,w){
+    (L.windmills||[]).forEach((m)=>{
+      const p=toScreen(m.x,m.y); const len=m.len*VIEW.s;
+      const ang=(performance.now()/1000)*(m.speed||1.4)*(m.dir||1);
+      ctx.save(); ctx.translate(p.x,p.y);
+      // hub post
+      ctx.fillStyle='#3a2a4e'; ctx.beginPath();ctx.arc(0,0,9*VIEW.s,0,7);ctx.fill();
+      for(let k=0;k<4;k++){
+        const a2=ang+k*Math.PI/2;
+        ctx.save(); ctx.rotate(a2);
+        const g=ctx.createLinearGradient(0,0,len,0);
+        g.addColorStop(0,'#9b7bd6'); g.addColorStop(1,'#5f49a8');
+        ctx.fillStyle=g;
+        ctx.beginPath(); ctx.moveTo(0,-6*VIEW.s); ctx.lineTo(len,-3*VIEW.s);
+        ctx.lineTo(len,3*VIEW.s); ctx.lineTo(0,6*VIEW.s); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle='#c9b6f0'; ctx.beginPath();ctx.arc(0,0,5*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function bouncy(L,w){
+    for(const r of (L.bouncy||[])){
+      const a=toScreen(r[0],r[1]); const ww=r[2]*VIEW.s, hh=r[3]*VIEW.s;
+      const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+hh);
+      g.addColorStop(0,'#2bd6a0'); g.addColorStop(1,'#159e76');
+      ctx.fillStyle=g; rr(a.x,a.y,ww,hh,Math.min(10*VIEW.s,hh/2,ww/2)); ctx.fill();
+      ctx.strokeStyle='#7dffd8'; ctx.lineWidth=2*VIEW.s; ctx.stroke();
+      // chevrons to signal springiness
+      ctx.strokeStyle='#bafff0'; ctx.globalAlpha=0.7; ctx.lineWidth=2*VIEW.s;
+      const n=Math.max(1,Math.floor(Math.max(ww,hh)/22));
+      for(let i=0;i<n;i++){ const yy=a.y+6*VIEW.s+i*18*VIEW.s; if(yy>a.y+hh-6*VIEW.s)break;
+        ctx.beginPath();ctx.moveTo(a.x+5*VIEW.s,yy+6*VIEW.s);ctx.lineTo(a.x+ww/2,yy);ctx.lineTo(a.x+ww-5*VIEW.s,yy+6*VIEW.s);ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
   }
   function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
     ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
   function doors(L,w){
     (L.doors||[]).forEach((d,i)=>{
-      if(w.doorOpen[i])return;
       const a=toScreen(d.x1,d.y1),b=toScreen(d.x2,d.y2);
+      const open=w.doorOpen[i];
+      if(d.flap){
+        // two flaps hinged at each end; swing down ~80° when open
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        const swing=open?1:0;
+        const drawFlap=(hx,hy,dir)=>{
+          const len=Math.abs(mx-hx);
+          ctx.save(); ctx.translate(hx,hy);
+          ctx.rotate(dir*swing*1.4);   // swing down into the gap
+          const g=ctx.createLinearGradient(0,0,dir*len,0);
+          g.addColorStop(0,'#6b5326'); g.addColorStop(1,'#3a2a14');
+          ctx.fillStyle=g;
+          rr(Math.min(0,dir*len),-6*VIEW.s,len,12*VIEW.s,4*VIEW.s); ctx.fill();
+          ctx.strokeStyle='#caa955'; ctx.lineWidth=1.5*VIEW.s; ctx.stroke();
+          // hinge
+          ctx.fillStyle='#9fb4dd'; ctx.beginPath();ctx.arc(0,0,4*VIEW.s,0,7);ctx.fill();
+          ctx.restore();
+        };
+        drawFlap(a.x,a.y,+1);
+        drawFlap(b.x,b.y,-1);
+        return;
+      }
+      if(open)return;
       ctx.strokeStyle='#c9d6f0'; ctx.lineWidth=Math.max(3,7*VIEW.s); ctx.lineCap='round';
       const arm = d.trig.k==='touch' && w.doorTimer[i]>=0;
       if(arm){ctx.strokeStyle='#ff9b4d';}
       ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-      // pivot dot
       ctx.fillStyle=arm?'#ff9b4d':'#9fb4dd';
       ctx.beginPath();ctx.arc(a.x,a.y,Math.max(3,5*VIEW.s),0,7);ctx.fill();
+    });
+  }
+  function buttons(L,w){
+    (L.buttons||[]).forEach((b,i)=>{
+      const p=toScreen(b.x,b.y); const down=w.btnDown[i];
+      // plinth (small rocky base the button sits on)
+      ctx.fillStyle='#26314c';
+      rr(p.x-30*VIEW.s, p.y+2*VIEW.s, 60*VIEW.s, 16*VIEW.s, 4*VIEW.s); ctx.fill();
+      ctx.fillStyle='#1b2236';
+      rr(p.x-24*VIEW.s, p.y+12*VIEW.s, 48*VIEW.s, 10*VIEW.s, 3*VIEW.s); ctx.fill();
+      // button cap
+      if(down){
+        ctx.shadowColor='#37e0c8'; ctx.shadowBlur=16*VIEW.s;
+        ctx.fillStyle='#46e0b0';
+      } else {
+        ctx.fillStyle='#ffb347';
+      }
+      rr(p.x-22*VIEW.s, p.y-(down?2:9)*VIEW.s, 44*VIEW.s, (down?9:13)*VIEW.s, 4*VIEW.s); ctx.fill();
+      ctx.shadowBlur=0;
+      // glow ring when active
+      if(down){ ctx.strokeStyle='#aef7e4'; ctx.lineWidth=2*VIEW.s; ctx.globalAlpha=0.8;
+        rr(p.x-24*VIEW.s,p.y-4*VIEW.s,48*VIEW.s,12*VIEW.s,5*VIEW.s); ctx.stroke(); ctx.globalAlpha=1; }
     });
   }
   function buttons(L,w){
@@ -1382,7 +1075,7 @@ const Render=(()=>{
       const d=hr(h); const ang=Math.atan2(d.y,d.x);
       ctx.save();ctx.translate(p.x,p.y);
       const R=BP.ARROW_R*VIEW.s;
-      const spent=!a.armed;
+      const spent=!!a.spent;
       // draggable hint ring (pulsing) before launch
       if(!launched){
         const pulse=0.5+0.5*Math.sin(performance.now()/350);
@@ -1426,7 +1119,14 @@ const Render=(()=>{
   function bat(x,y,white,label,wing){
     const p=toScreen(x,y); const s=VIEW.s*1.05;
     const wg=Math.max(0,Math.min(1,wing||0));   // 0 = folded, 1 = wings out
-    ctx.save();ctx.translate(p.x,p.y-30*VIEW.s);
+    ctx.save();
+    // Bats HANG upside-down from the ceiling: flip the art vertically (head down,
+    // body up). Anchor so the topmost drawn point (the rump/body, local ly=+28
+    // after flip) sits at the ceiling slab bottom (~40 world px above the bat point),
+    // so the bat actually grips the roof with no gap.
+    const TY = p.y - 40*VIEW.s + 28*(VIEW.s*1.05);
+    ctx.translate(p.x, TY);
+    ctx.scale(1,-1);
     const body=white?'#dff4ff':'#16243e', ear=white?'#bfe0f5':'#0e1830';
     const wingCol=white?'#cfe9fb':'#1d2c48';
     // wings (drawn behind body) — membrane with finger struts, scale/spread by wg
@@ -1438,7 +1138,6 @@ const Render=(()=>{
         ctx.beginPath();
         ctx.moveTo(10*s, -2*s);
         ctx.quadraticCurveTo((20+40*sp)*s, (-18-10*sp)*s, (44+30*sp)*s, (2-6*sp)*s);
-        // scalloped lower edge (bat membrane)
         ctx.quadraticCurveTo((40+24*sp)*s, (10)*s, (34+20*sp)*s, (4)*s);
         ctx.quadraticCurveTo((30+14*sp)*s, (16)*s, (24+12*sp)*s, (8)*s);
         ctx.quadraticCurveTo((20+6*sp)*s, (20)*s, (14)*s, (12)*s);
@@ -1452,26 +1151,26 @@ const Render=(()=>{
     ctx.beginPath();ctx.ellipse(0,8*s,18*s,20*s,0,0,7);ctx.fill();
     // head
     ctx.beginPath();ctx.arc(0,-12*s,16*s,0,7);ctx.fill();
-    // ears (bat-ish, tall)
+    // ears (bat-ish, tall) — point up into the ceiling once flipped
     ctx.fillStyle=ear;
     ctx.beginPath();ctx.moveTo(-13*s,-20*s);ctx.lineTo(-20*s,-46*s);ctx.lineTo(-4*s,-26*s);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(13*s,-20*s);ctx.lineTo(20*s,-46*s);ctx.lineTo(4*s,-26*s);ctx.closePath();ctx.fill();
-    // eyes (whites/darks) with pupils
+    // eyes — counter-flip so pupils/glints sit naturally on the face
+    ctx.save(); ctx.translate(0,-13*s); ctx.scale(1,-1);
     const eyeFill=white?'#f3fbff':'#dff4ff';
     ctx.fillStyle=eyeFill;
-    ctx.beginPath();ctx.arc(-6*s,-13*s,4.6*s,0,7);ctx.arc(6*s,-13*s,4.6*s,0,7);ctx.fill();
-    // pupils: black for the dark bat, pink-red for the albino white bat
+    ctx.beginPath();ctx.arc(-6*s,0,4.6*s,0,7);ctx.arc(6*s,0,4.6*s,0,7);ctx.fill();
     ctx.fillStyle=white?'#ff5b7a':'#0a0f1c';
-    ctx.beginPath();ctx.arc(-6*s,-13*s,2.3*s,0,7);ctx.arc(6*s,-13*s,2.3*s,0,7);ctx.fill();
-    // tiny eye glint
+    ctx.beginPath();ctx.arc(-6*s,0,2.3*s,0,7);ctx.arc(6*s,0,2.3*s,0,7);ctx.fill();
     ctx.fillStyle='#ffffffcc';
-    ctx.beginPath();ctx.arc(-7*s,-14*s,0.9*s,0,7);ctx.arc(5*s,-14*s,0.9*s,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(-7*s,-1*s,0.9*s,0,7);ctx.arc(5*s,-1*s,0.9*s,0,7);ctx.fill();
+    ctx.restore();
     // nose
     ctx.fillStyle=white?'#ff8fa3':'#2a3b5e';ctx.beginPath();ctx.arc(0,-6*s,2.0*s,0,7);ctx.fill();
     ctx.restore();
     if(label){
       ctx.fillStyle='#cfe6ff';ctx.font=(13*VIEW.s|0)+'px Trebuchet MS';ctx.textAlign='center';
-      ctx.fillText(label,p.x,p.y-74*VIEW.s);
+      ctx.fillText(label,p.x,p.y+70*VIEW.s);
     }
   }
   function trail(pts,col,win,prog){
@@ -1488,7 +1187,7 @@ const Render=(()=>{
     ctx.lineWidth=(win?8:4)*VIEW.s;
     ctx.setLineDash(win?[14*VIEW.s,12*VIEW.s]:[2*VIEW.s,10*VIEW.s]);
     ctx.lineCap='round'; ctx.lineJoin='round';
-    if(win){ ctx.shadowColor=col; ctx.shadowBlur=10*VIEW.s; }
+    if(win){ ctx.shadowBlur=0; }
     ctx.beginPath();
     let started=false;
     for(let i=0;i<clean.length;i++){
@@ -1527,7 +1226,7 @@ const Render=(()=>{
     Render._ch = (w.lvl && w.lvl.ch) || 1;
     applyBaseTransform();
     bg(); const L=w.lvl;
-    rock(L); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
+    rock(L); bouncy(L,w); cogs(L,w); windmills(L,w); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
     if(w.won){
       // winning route: thick green dotted line revealed black-bat -> white-bat
       trail(w.pts, '#37e0a0', true, opts.pathProg!=null?opts.pathProg:1);
@@ -1632,16 +1331,17 @@ const Game=(()=>{
     // after release: a tap anywhere resets the ball and re-enables dragging
     if(launched){ retry(); return; }
     const wp=toWorld(cx,cy);
-    // pick nearest arrow within a generous grab radius (bigger than the visual disc)
+    // LAUNCH PRECEDENCE: a tap on/near the black bat rolls the ball, even if an
+    // echo is parked nearby (makes launching reliable when an echo sits by the bat).
+    const db=Math.hypot(wp.x-L.black.x, wp.y-(L.black.y+26));
+    if(db<150){ fire(); return; }
+    // otherwise pick nearest echo within a generous grab radius
     let best=-1,bd=1e9;
     for(let i=0;i<nTools();i++){
       const dd=Math.hypot(wp.x-placements[i].x,wp.y-placements[i].y);
       if(dd<bd&&dd<150){bd=dd;best=i;}
     }
     if(best>=0){ dragIdx=best; dragOff={x:placements[best].x-wp.x,y:placements[best].y-wp.y}; return; }
-    // otherwise: tap on/near the black bat rolls the ball
-    const db=Math.hypot(wp.x-L.black.x, wp.y-(L.black.y-26));
-    if(db<140){ fire(); }
   }
   function onMove(cx,cy){
     if(dragIdx<0) return;
@@ -1750,65 +1450,50 @@ const Game=(()=>{
 
 /* ============ UI ============ */
 const UI=(()=>{
-  let curChapter=1;
   function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
     document.getElementById(id).classList.add('on');}
   function toTitle(){go('title');refreshTitle();}
   function play(){ // resume at first unlocked-but-uncleared, else level 1
-    let id=1; for(let i=1;i<=50;i++){ if(Store.unlocked(i)&&!Store.bestFor(i)){id=i;break;} if(Store.unlocked(i))id=i; }
+    let id=1; for(let i=1;i<=LEVELS.length;i++){ if(Store.unlocked(i)&&!Store.bestFor(i)){id=i;break;} if(Store.unlocked(i))id=i; }
     Game.loadLevel(id,false);
   }
   function refreshTitle(){
-    document.getElementById('tStars').textContent=Store.totalStars();
-    document.getElementById('tScore').textContent=Store.totalScore();
-    document.getElementById('tDone').textContent=Store.cleared()+'/100';
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+    set('ttStars',Store.totalStars()); set('tStars',Store.totalStars());
+    set('ttScore',Store.totalScore()); set('tScore',Store.totalScore());
+    set('ttDone',Store.cleared()+'/'+LEVELS.length);
+    set('tDone',Store.cleared()+'/'+LEVELS.length);
   }
-  function showSelect(){buildTabs();buildGrid();go('select');}
-  const CH=['Cavern Mouth','Crystal Hollows','Echo Chasm','Underground Lake','The Deep','Winding Galleries','Dusk Caverns','Midnight Vaults','The Abyss','The Heart'];
-  function buildTabs(){
-    const t=document.getElementById('chaptabs');t.innerHTML='';
-    CH.forEach((nm,i)=>{const c=i+1;const el=document.createElement('div');
-      el.className='chaptab'+(c===curChapter?' act':'');el.textContent=c+' · '+nm;
-      el.onclick=()=>{curChapter=c;buildTabs();buildGrid();};t.appendChild(el);});
-  }
-  function buildGrid(){
-    const g=document.getElementById('grid');g.innerHTML='';
-    LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{
-      const cell=document.createElement('div');
-      const locked=!Store.unlocked(l.id), st=Store.starsFor(l.id);
-      cell.className='cell'+(locked?' lock':'')+(st?' done':'');
-      let stars='';for(let i=1;i<=3;i++)stars+=(i<=st?'★':'·');
-      cell.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div>'+
-        (locked?'':'<div class="st">'+stars+'</div>');
-      if(!locked)cell.onclick=()=>Game.loadLevel(l.id,false);
-      g.appendChild(cell);
+  function starStr(n){let s='';for(let i=1;i<=3;i++)s+=(i<=n?'★':'·');return s;}
+  function showSelect(){ buildList(false); refreshTitle(); go('select'); }
+  function openViewer(){ buildList(true); refreshTitle(); go('select');
+    UI.toast('Viewer: every level unlocked. Tap ✦ in-game to auto-solve.'); }
+  function buildList(viewer){
+    const list=document.getElementById('levlist'); list.innerHTML='';
+    LEVELS.forEach(l=>{
+      const locked = !viewer && !Store.unlocked(l.id);
+      const st = Store.starsFor(l.id);
+      const best = Store.bestFor(l.id);
+      const beat = best>0 && best>=(l.refScore||99999);   // beat the verified reference
+      const row=document.createElement('div');
+      row.className='lrow'+(locked?' lock':'')+(beat?' beat':'');
+      const starsHtml = viewer
+        ? '<div class="lstars" style="color:var(--glow)">▶ test</div>'
+        : (locked ? '<div class="lstars"></div>'
+                  : '<div class="lstars'+(beat?' hot':'')+'">'+starStr(st)+'</div>');
+      const bestHtml = viewer ? 'reference '+(l.refScore||'?')
+                              : (best>0 ? ('best '+best+(beat?' · beat ref!':'')) : 'not cleared');
+      row.innerHTML =
+        '<div class="ln">'+l.id+'</div>'+
+        '<div class="lmid"><div class="lnm">'+l.name+'</div>'+
+        '<div class="lbest">'+(locked?'locked':bestHtml)+'</div></div>'+
+        starsHtml;
+      if(!locked) row.onclick=()=>Game.loadLevel(l.id, viewer);
+      list.appendChild(row);
     });
   }
   function quitToSelect(){document.getElementById('result').classList.remove('on');
     document.getElementById('pause').classList.remove('on');Game.resumeGame();showSelect();}
-  function openViewer(){buildViewerGrid();}
-  function buildViewerGrid(){
-    // viewer = level select that ignores locks, launches in viewer mode
-    curChapter=1; buildTabs(); 
-    const g=document.getElementById('grid'); 
-    showSelect();
-    g.innerHTML='';
-    LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{
-      const cell=document.createElement('div');cell.className='cell done';
-      cell.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div><div class="st">▶ test</div>';
-      cell.onclick=()=>Game.loadLevel(l.id,true);
-      g.appendChild(cell);
-    });
-    // rebuild tabs to refresh viewer grid on chapter change
-    document.getElementById('chaptabs').querySelectorAll('.chaptab').forEach((el,i)=>{
-      el.onclick=()=>{curChapter=i+1;document.querySelectorAll('#chaptabs .chaptab').forEach((e,j)=>e.classList.toggle('act',j===i));
-        const gg=document.getElementById('grid');gg.innerHTML='';
-        LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{const c=document.createElement('div');c.className='cell done';
-          c.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div><div class="st">▶ test</div>';
-          c.onclick=()=>Game.loadLevel(l.id,true);gg.appendChild(c);});};
-    });
-    UI.toast('Viewer: every level unlocked. Tap ✦ in-game to auto-solve.');
-  }
   function viewerSolve(){Game.viewerSolve();}
   let tt;
   function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
