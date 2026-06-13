@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bat Physics</title>
+<style>
+  :root{
+    --rock:#0b0e18; --rock2:#141a2c; --stone:#1d2740;
+    --glow:#37e0c8; --glow2:#1aa89a; --amber:#ffb347; --crystal:#8a7bff;
+    --bat-w:#dff4ff; --bat-k:#0e1626; --txt:#cfe6ff; --dim:#6a7ba0;
+    --gold:#ffd34d; --bad:#ff5b6e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#05070d;
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:var(--txt);
+    -webkit-user-select:none;user-select:none;touch-action:none;}
+  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{display:block;background:#05070d;}
+
+  /* overlay screens */
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) 20px;
+    background:radial-gradient(120% 90% at 50% -10%, #16213d 0%, #0a0e1a 60%, #05070d 100%);}
+  .screen.on{display:flex;}
+  .title{font-size:clamp(40px,9vw,84px);font-weight:800;letter-spacing:2px;
+    color:var(--bat-w);text-shadow:0 0 24px var(--glow),0 0 4px #000;margin:0;}
+  .title .b{color:var(--glow);}
+  .sub{color:var(--dim);letter-spacing:3px;text-transform:uppercase;font-size:13px;margin:6px 0 26px;}
+  .stat{display:flex;gap:28px;margin-bottom:30px;}
+  .stat div{text-align:center;}
+  .stat b{display:block;font-size:30px;color:var(--gold);text-shadow:0 0 12px #ffae0066;}
+  .stat span{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+  .btn{appearance:none;border:1px solid #2c3b5e;background:linear-gradient(180deg,#1a2440,#121a30);
+    color:var(--txt);font:inherit;font-size:18px;font-weight:700;letter-spacing:1px;
+    padding:15px 40px;border-radius:14px;margin:7px;cursor:pointer;min-width:230px;
+    box-shadow:0 6px 0 #0a1020,0 8px 18px #0006;transition:transform .05s,box-shadow .05s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #0a1020;}
+  .btn.primary{border-color:var(--glow2);
+    background:linear-gradient(180deg,#14403c,#0c2724);color:#dffdf7;text-shadow:0 0 10px var(--glow);}
+  .btn.sm{min-width:0;padding:11px 20px;font-size:15px;}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;}
+
+  /* level select grid */
+  #select .head{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  #select h2{margin:0;font-size:26px;color:var(--bat-w);letter-spacing:1px;}
+  .chaptabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;}
+  .chaptab{padding:8px 14px;border-radius:10px;border:1px solid #243152;background:#101830;
+    font-size:12px;letter-spacing:1px;cursor:pointer;color:var(--dim);}
+  .chaptab.act{color:#fff;border-color:var(--glow2);background:#13302e;text-shadow:0 0 8px var(--glow);}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:min(640px,92vw);}
+  .cell{aspect-ratio:1;border-radius:14px;border:1px solid #233055;
+    background:linear-gradient(180deg,#16203c,#0e1730);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;}
+  .cell .n{font-size:24px;font-weight:800;color:var(--bat-w);}
+  .cell .nm{font-size:8.5px;letter-spacing:.3px;color:var(--dim);padding:0 4px;text-align:center;
+    margin-top:2px;line-height:1.1;}
+  .cell .st{position:absolute;bottom:6px;font-size:11px;letter-spacing:2px;color:var(--gold);}
+  .cell.lock{cursor:not-allowed;opacity:.5;}
+  .cell.lock .n{color:var(--dim);}
+  .cell.lock::after{content:"\1F512";position:absolute;font-size:18px;opacity:.7;}
+  .cell.lock .n,.cell.lock .nm{visibility:hidden;}
+  .cell.done{border-color:var(--glow2);}
+  .cell:not(.lock):active{transform:scale(.96);}
+
+  /* in-game HUD */
+  #hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
+    justify-content:space-between;padding:10px 14px;pointer-events:none;}
+  #hud .pill{pointer-events:auto;background:#0c1326cc;border:1px solid #243152;border-radius:12px;
+    padding:8px 12px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(4px);}
+  #scoreNum{font-size:26px;font-weight:800;color:var(--gold);min-width:74px;text-align:center;
+    text-shadow:0 0 12px #ffae0055;}
+  #lvlName{font-size:13px;letter-spacing:1px;color:var(--txt);}
+  #lvlName small{color:var(--dim);display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+  .icbtn{pointer-events:auto;width:42px;height:42px;border-radius:11px;border:1px solid #243152;
+    background:#0c1326cc;color:var(--txt);font-size:18px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;}
+  .icbtn:active{transform:scale(.93);}
+  #toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);
+    background:#0c1326e6;border:1px solid #2c3b5e;border-radius:12px;padding:10px 18px;
+    font-size:14px;letter-spacing:.5px;color:var(--txt);opacity:0;transition:opacity .25s;
+    max-width:80vw;text-align:center;pointer-events:none;}
+  #toast.on{opacity:1;}
+  #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
+
+  /* result modal */
+  #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:#04060bcc;backdrop-filter:blur(3px);z-index:20;}
+  #result.on{display:flex;}
+  .card{width:min(440px,90vw);background:linear-gradient(180deg,#16213d,#0c1426);
+    border:1px solid #2c3b5e;border-radius:20px;padding:26px;text-align:center;
+    box-shadow:0 20px 60px #000a;}
+  .card h2{margin:0 0 4px;font-size:34px;letter-spacing:1px;}
+  .card h2.win{color:var(--glow);text-shadow:0 0 18px var(--glow);}
+  .card h2.lose{color:var(--bad);}
+  .stars{font-size:46px;letter-spacing:8px;margin:8px 0 2px;height:50px;}
+  .stars .f{color:var(--gold);text-shadow:0 0 14px #ffae00aa;}
+  .stars .e{color:#2a3450;}
+  .rscore{font-size:18px;color:var(--txt);margin:6px 0 18px;}
+  .rscore b{color:var(--gold);font-size:24px;}
+  .rscore .best{color:var(--dim);font-size:13px;display:block;margin-top:3px;}
+  .hint{font-size:12px;color:var(--dim);margin-top:12px;line-height:1.5;}
+
+  .tag{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:11px;
+    letter-spacing:3px;color:var(--crystal);text-transform:uppercase;}
+  .foot{position:absolute;bottom:14px;font-size:11px;color:var(--dim);letter-spacing:1px;}
+  @media (max-width:520px){ .grid{grid-template-columns:repeat(4,1fr);} }
+</style>
+</head>
+<body>
+<div id="app"><canvas id="cv"></canvas></div>
+
+<!-- TITLE -->
+<div id="title" class="screen on">
+  <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
+  <div class="sub">Roll the ball through the caves</div>
+  <div class="stat">
+    <div><b id="tStars">0</b><span>★ Stars</span></div>
+    <div><b id="tScore">0</b><span>Total Score</span></div>
+    <div><b id="tDone">0/50</b><span>Cleared</span></div>
+  </div>
+  <div class="row">
+    <button class="btn primary" onclick="UI.play()">PLAY</button>
+  </div>
+  <div class="row">
+    <button class="btn sm" onclick="UI.showSelect()">LEVEL SELECT</button>
+    <button class="btn sm" onclick="UI.openViewer()">LEVEL VIEWER</button>
+  </div>
+  <button class="btn sm" style="margin-top:18px;opacity:.7" onclick="UI.resetAll()">Reset progress</button>
+  <div class="foot">A new cave-physics puzzle · 2026</div>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="select" class="screen">
+  <div class="head">
+    <button class="icbtn" onclick="UI.toTitle()">‹</button>
+    <h2>Select a Level</h2>
+  </div>
+  <div class="chaptabs" id="chaptabs"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen" style="background:none">
+  <div id="hud">
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="icbtn" onclick="UI.quitToSelect()">‹</button>
+      <div class="pill"><span id="scoreNum">999</span></div>
+    </div>
+    <div class="pill" id="lvlName"></div>
+    <div style="display:flex;gap:8px">
+      <button class="icbtn" onclick="Game.retry()" title="Retry">⟳</button>
+      <button class="icbtn" id="viewerBadge" style="display:none" onclick="UI.viewerSolve()" title="Show solution">✦</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+  <div id="result">
+    <div class="card">
+      <h2 id="rTitle" class="win">LEVEL COMPLETE!</h2>
+      <div class="stars" id="rStars"></div>
+      <div class="rscore" id="rScore"></div>
+      <div class="row">
+        <button class="btn sm" onclick="Game.retry()">RETRY</button>
+        <button class="btn sm" id="rNext" onclick="Game.next()">NEXT ›</button>
+      </div>
+      <div class="row"><button class="btn sm" style="opacity:.7" onclick="UI.quitToSelect()">LEVELS</button></div>
+      <div class="hint" id="rHint"></div>
+    </div>
+  </div>
+  <div class="tag" id="viewerTag" style="display:none">VIEWER MODE</div>
+</div>
+
+<script>
+/* ============ embedded verified engine ============ */
+// ============ BAT PHYSICS — core engine (environment-agnostic) ============
+'use strict';
+const BP = (() => {
+
+const W = 1600, H = 900;
+const DT = 1 / 120;
+const GRAV = 1500;
+const BALLR = 14;
+const SEG_TH = 7;            // half-thickness of segment colliders
+const ARROW_SPEED = 880;
+const ARROW_R = 57;
+const FLIP_SPEED = 860;
+const FLIP_R = 78;
+const FLIP_CD = 0.9;
+const PORTAL_R = 30;
+const WIN_R = 46;
+const MAXV = 1600;
+const TIME_CAP = 32;
+const STALL_T = 1.1;
+const SCORE_DIV = 12;
+
+// clock hour -> unit direction (12 = up, 3 = right, 6 = down, 9 = left)
+function hourDir(h) {
+  const a = h * Math.PI / 6;
+  return { x: Math.sin(a), y: -Math.cos(a) };
+}
+
+// ---------- geometry ----------
+function closestOnSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const L2 = dx * dx + dy * dy;
+  let t = L2 === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return { x: x1 + t * dx, y: y1 + t * dy };
+}
+function closestOnRect(px, py, r) {
+  return { x: Math.max(r[0], Math.min(px, r[0] + r[2])),
+           y: Math.max(r[1], Math.min(py, r[1] + r[3])) };
+}
+
+// ---------- world instantiation ----------
+// placements: array of {x,y} overriding drag-arrow positions (player or solution)
+function makeWorld(level, placements) {
+  const w = {
+    lvl: level,
+    t: 0,
+    p: { x: level.black.x, y: level.black.y - 26 },
+    v: { x: level.launch ? level.launch.vx : 260, y: level.launch ? level.launch.vy : 0 },
+    path: 0,
+    pts: [{ x: level.black.x, y: level.black.y - 26 }],
+    won: false, fail: null, done: false,
+    stall: 0,
+    arrows: [],          // unified arrow runtime list
+    doorOpen: (level.doors || []).map(() => false),
+    doorTimer: (level.doors || []).map(() => -1),
+    flipCd: (level.flippers || []).map(() => 0),
+    flipAnim: (level.flippers || []).map(() => 0),
+    portalCd: (level.portals || []).map(() => 0),
+    warpN: (level.portals || []).map(() => 0),
+    btnDown: (level.buttons || []).map(() => false),
+    events: [],          // for renderer: {t, kind, i}
+  };
+  (level.arrows || []).forEach(a => w.arrows.push({ x: a.x, y: a.y, h: a.h, kind: 'fix', armed: true }));
+  (level.osc || []).forEach(a => w.arrows.push({ x: a.x, y: a.y, h: a.h1, h1: a.h1, h2: a.h2, period: a.period || 2.4, kind: 'osc', armed: true }));
+  (level.drag || []).forEach((a, i) => {
+    const pl = placements && placements[i] ? placements[i] : { x: a.x, y: a.y };
+    w.arrows.push({ x: pl.x, y: pl.y, h: a.h, kind: 'drag', armed: true, di: i });
+  });
+  return w;
+}
+
+function arrowAngleHour(a, t) {
+  if (a.kind !== 'osc') return a.h;
+  // ping-pong between h1 and h2, always sweeping the short way (e.g. 12 -> 2 goes through 1)
+  let h2 = a.h2; if (h2 < a.h1) h2 += 12;
+  const span = h2 - a.h1;
+  const ph = (t % (a.period * 2)) / a.period;       // 0..2
+  const k = ph < 1 ? ph : 2 - ph;                    // 0..1..0
+  return a.h1 + span * k;
+}
+
+// ---------- one physics step ----------
+function step(w) {
+  if (w.done) return;
+  const L = w.lvl;
+  w.t += w.DTscale ? DT * w.DTscale : DT;
+
+  // gravity + integrate
+  w.v.y += GRAV * DT;
+  const sp0 = Math.hypot(w.v.x, w.v.y);
+  if (sp0 > MAXV) { w.v.x *= MAXV / sp0; w.v.y *= MAXV / sp0; }
+  const ox = w.p.x, oy = w.p.y;
+  w.p.x += w.v.x * DT;
+  w.p.y += w.v.y * DT;
+
+  // collisions (few iterations for stability)
+  for (let it = 0; it < 3; it++) {
+    let hit = false;
+    const collide = (cp, half) => {
+      let dx = w.p.x - cp.x, dy = w.p.y - cp.y;
+      let d = Math.hypot(dx, dy);
+      const min = BALLR + half;
+      if (d >= min) return false;
+      let nx, ny;
+      if (d < 1e-6) { nx = 0; ny = -1; d = 0; } else { nx = dx / d; ny = dy / d; }
+      w.p.x += nx * (min - d);
+      w.p.y += ny * (min - d);
+      const vn = w.v.x * nx + w.v.y * ny;
+      if (vn < 0) {
+        const e = (-vn < 90) ? 0 : 0.5;
+        w.v.x -= (1 + e) * vn * nx;
+        w.v.y -= (1 + e) * vn * ny;
+        // tangential friction
+        const tn = w.v.x * nx + w.v.y * ny;
+        let tx = w.v.x - tn * nx, ty = w.v.y - tn * ny;
+        tx *= 0.998; ty *= 0.998;
+        w.v.x = tn * nx + tx; w.v.y = tn * ny + ty;
+      }
+      return true;
+    };
+    for (const r of (L.rects || [])) {
+      const cp = closestOnRect(w.p.x, w.p.y, r);
+      if (collide(cp, 0)) hit = true;
+    }
+    for (const s of (L.segs || [])) {
+      const cp = closestOnSeg(w.p.x, w.p.y, s[0], s[1], s[2], s[3]);
+      if (collide(cp, SEG_TH)) hit = true;
+    }
+    (L.doors || []).forEach((d, i) => {
+      if (w.doorOpen[i]) return;
+      const cp = closestOnSeg(w.p.x, w.p.y, d.x1, d.y1, d.x2, d.y2);
+      const dd = Math.hypot(w.p.x - cp.x, w.p.y - cp.y);
+      if (dd < BALLR + SEG_TH) {
+        if (collide(cp, SEG_TH)) hit = true;
+        // touch-trigger doors start their countdown on contact
+        if (d.trig.k === 'touch' && w.doorTimer[i] < 0) {
+          w.doorTimer[i] = d.trig.delay != null ? d.trig.delay : 0.38;
+          w.events.push({ t: w.t, kind: 'doorArm', i });
+        }
+      }
+    });
+    if (!hit) break;
+  }
+
+  // buttons -> open linked doors
+  (L.buttons || []).forEach((b, i) => {
+    const dx = w.p.x - b.x, dy = w.p.y - b.y;
+    if (Math.hypot(dx, dy) < BALLR + 24 && !w.btnDown[i]) {
+      w.btnDown[i] = true;
+      if (!w.doorOpen[b.door]) { w.doorOpen[b.door] = true; w.events.push({ t: w.t, kind: 'doorOpen', i: b.door }); }
+    }
+  });
+
+  // timed / touch door countdowns
+  (L.doors || []).forEach((d, i) => {
+    if (w.doorOpen[i]) return;
+    if (d.trig.k === 'timed' && w.t >= d.trig.t) { w.doorOpen[i] = true; w.events.push({ t: w.t, kind: 'doorOpen', i }); }
+    if (d.trig.k === 'touch' && w.doorTimer[i] >= 0) {
+      w.doorTimer[i] -= DT;
+      if (w.doorTimer[i] <= 0) { w.doorOpen[i] = true; w.events.push({ t: w.t, kind: 'doorOpen', i }); }
+    }
+  });
+
+  // arrows
+  for (const a of w.arrows) {
+    const d = Math.hypot(w.p.x - a.x, w.p.y - a.y);
+    if (a.armed && d < ARROW_R + BALLR) {
+      const dir = hourDir(arrowAngleHour(a, w.t));
+      w.v.x = dir.x * ARROW_SPEED;
+      w.v.y = dir.y * ARROW_SPEED;
+      a.armed = false;
+      w.events.push({ t: w.t, kind: 'arrow', x: a.x, y: a.y });
+    } else if (!a.armed && d > ARROW_R + BALLR + 12) a.armed = true;
+  }
+
+  // flippers (auto-fire, once per attempt)
+  (L.flippers || []).forEach((f, i) => {
+    w.flipAnim[i] = Math.max(0, w.flipAnim[i] - DT * 4);
+    const d = Math.hypot(w.p.x - f.x, w.p.y - f.y);
+    if (d < FLIP_R && w.flipCd[i] <= 0) {
+      w.flipCd[i] = 1e9;  // fired — stays spent until retry
+      const dir = hourDir(f.h);
+      w.v.x = dir.x * FLIP_SPEED;
+      w.v.y = dir.y * FLIP_SPEED;
+      w.flipAnim[i] = 1;
+      w.events.push({ t: w.t, kind: 'flip', i });
+    }
+  });
+
+  // portals
+  (L.portals || []).forEach((pt, i) => {
+    if (w.portalCd[i] > 0) {
+      const dOut = Math.hypot(w.p.x - pt.bx, w.p.y - pt.by);
+      if (dOut > PORTAL_R + 16) w.portalCd[i] = 0;
+      return;
+    }
+    const d = Math.hypot(w.p.x - pt.ax, w.p.y - pt.ay);
+    if (d < PORTAL_R) {
+      w.p.x = pt.bx; w.p.y = pt.by;
+      w.portalCd[i] = 1;
+      w.warpN[i]++;
+      if (w.warpN[i] > 4) { w.fail = 'lost'; w.done = true; }
+      w.events.push({ t: w.t, kind: 'warp', i });
+      w.pts.push(null);                 // break the trail
+      w.pts.push({ x: w.p.x, y: w.p.y });
+    }
+  });
+
+  // path accumulation
+  const seg = Math.hypot(w.p.x - ox, w.p.y - oy);
+  w.path += seg;
+  const last = w.pts[w.pts.length - 1];
+  if (!last || Math.hypot(w.p.x - last.x, w.p.y - last.y) > 18) w.pts.push({ x: w.p.x, y: w.p.y });
+
+  // win
+  const dw = Math.hypot(w.p.x - L.white.x, w.p.y - (L.white.y - 26));
+  if (dw < WIN_R) {
+    w.won = true; w.done = true;
+    w.pts.push({ x: L.white.x, y: L.white.y - 26 });
+    return;
+  }
+
+  // fail conditions
+  const sp = Math.hypot(w.v.x, w.v.y);
+  if (sp < 14) { w.stall += DT; if (w.stall > STALL_T) { w.fail = 'stalled'; w.done = true; } }
+  else w.stall = 0;
+  if (w.p.y > H + 160 || w.p.x < -160 || w.p.x > W + 160) { w.fail = 'lost'; w.done = true; }
+  if (w.t > TIME_CAP) { w.fail = 'time'; w.done = true; }
+}
+
+function score(w) { return Math.max(1, 999 - Math.round(w.path / SCORE_DIV)); }
+
+// run a full headless game; returns result
+function simulate(level, placements) {
+  const w = makeWorld(level, placements);
+  const maxSteps = Math.ceil(TIME_CAP / DT) + 10;
+  for (let i = 0; i < maxSteps && !w.done; i++) step(w);
+  return { won: w.won, fail: w.fail, score: score(w), path: w.path, t: w.t, pts: w.pts };
+}
+
+return { W, H, DT, GRAV, BALLR, SEG_TH, ARROW_SPEED, ARROW_R, FLIP_R, PORTAL_R, WIN_R,
+         hourDir, arrowAngleHour, makeWorld, step, score, simulate, closestOnRect, closestOnSeg };
+})();
+
+
+/* ============ embedded levels (verified solvable) ============ */
+// ============ BAT PHYSICS — 50 levels ============
+// World 1600x900. Floor top y=820. hour: 12=up 3=right 6=down 9=left.
+// Budget @ arrow speed 880: rise 258 (h12) / 193 (h1) / 64 (h2); flat hop <=447.
+// Flipper speed 860: rise 246 (h12) / 185 (h1).
+'use strict';
+const LEVELS = (() => {
+const F = 820;
+const base = () => ([ [0,F,1600,80], [-50,-200,70,1300], [1580,-200,70,1300], [0,-60,1600,70] ]);
+function floorPits(gaps){ const r=[]; let x=0; for(const [a,b] of gaps){ r.push([x,F,a-x,80]); x=b; } r.push([x,F,1600-x,80]); return r; }
+const walls = () => ([ [-50,-200,70,1300], [1580,-200,70,1300], [0,-60,1600,70] ]);
+const LV = [];
+const A=(x,y,h)=>({x,y,h});
+const D=(x,y,h,sx,sy)=>({x,y,h,sx,sy});
+const O=(x,y,h1,h2,p)=>({x,y,h1,h2,period:p});
+
+// ---------------- Chapter 1 · Cavern Mouth ----------------
+LV.push({ name:'First Flight', ch:1,
+  black:{x:190,y:F}, white:{x:1410,y:F}, launch:{vx:300,vy:0},
+  rects:[...base()], arrows:[A(800,790,3)] });
+
+LV.push({ name:'Place the Echo', ch:1,
+  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[640,1000]]), ...walls()],
+  drag:[D(300,640,2, 576,774)] });
+
+LV.push({ name:'Up the Shaft', ch:1,
+  black:{x:170,y:F}, white:{x:1380,y:640}, launch:{vx:300,vy:0},
+  rects:[...base(), [1180,640,420,26]],
+  drag:[D(300,600,1, 950,786)] });
+
+LV.push({ name:'Stalagmite Hop', ch:1,
+  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [760,640,90,180]],
+  drag:[D(300,620,1, 560,788)] });
+
+LV.push({ name:'Two Hops', ch:1,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[480,760],[1020,1300]]), ...walls()],
+  drag:[D(260,600,2, 420,790), D(330,600,2, 940,790)] });
+
+LV.push({ name:'Back Wall Bank', ch:1,
+  black:{x:200,y:F}, white:{x:260,y:620}, launch:{vx:300,vy:0},
+  rects:[...base(), [120,620,360,24]],
+  drag:[D(500,560,11, 760,786)] });
+
+LV.push({ name:'Chimney', ch:1,
+  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [620,0,70,520], [930,500,70,320]],
+  arrows:[A(800,560,12), A(800,330,2)],
+  drag:[D(300,600,12, 800,786)] });
+
+LV.push({ name:'Pendulum', ch:1,
+  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[760,1180]]), ...walls()],
+  osc:[O(700,620,1,3,2.2)],
+  drag:[D(300,600,1, 520,788)] });
+
+LV.push({ name:'Stacked Echoes', ch:1,
+  black:{x:170,y:F}, white:{x:1430,y:300}, launch:{vx:300,vy:0},
+  rects:[...base(), [1240,300,360,24]],
+  arrows:[A(820,560,12), A(820,330,1)],
+  drag:[D(300,600,12, 820,786)] });
+
+LV.push({ name:'Mouth of the Deep', ch:1,
+  black:{x:150,y:F}, white:{x:1460,y:520}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[560,900]]), ...walls(), [1300,520,300,24]],
+  arrows:[A(1150,560,1)],
+  drag:[D(260,600,1, 470,788), D(330,600,12, 1150,788)] });
+
+// ---------------- Chapter 2 · Crystal Hollows (buttons & gates) ----------------
+LV.push({ name:'Press to Pass', ch:2,
+  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
+  rects:[...base()],
+  doors:[{x1:900,y1:600,x2:900,y2:814,trig:{k:'button'}}],
+  buttons:[{x:560,y:796,door:0}],
+  arrows:[A(1050,790,3)] });
+
+LV.push({ name:'High Switch', ch:2,
+  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [620,620,280,24]],
+  doors:[{x1:1120,y1:560,x2:1120,y2:814,trig:{k:'button'}}],
+  buttons:[{x:760,y:596,door:0}],
+  drag:[D(300,600,1, 520,788)], arrows:[A(1000,790,3)] });
+
+LV.push({ name:'Two Gates', ch:2,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
+  rects:[...base()],
+  doors:[{x1:760,y1:620,x2:760,y2:814,trig:{k:'button'}},
+         {x1:1200,y1:620,x2:1200,y2:814,trig:{k:'button'}}],
+  buttons:[{x:420,y:796,door:0},{x:980,y:796,door:1}],
+  arrows:[A(560,790,3), A(1060,790,3)] });
+
+LV.push({ name:'Crystal Lift', ch:2,
+  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [560,620,200,24]],
+  doors:[{x1:1150,y1:540,x2:1150,y2:814,trig:{k:'button'}}],
+  buttons:[{x:660,y:596,door:0}],
+  drag:[D(300,560,1, 470,788)], arrows:[A(880,790,3)] });
+
+LV.push({ name:'The Long Hall', ch:2,
+  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
+  rects:[...base(), [500,560,600,24]],
+  doors:[{x1:1320,y1:620,x2:1320,y2:814,trig:{k:'button'}}],
+  buttons:[{x:800,y:536,door:0}],
+  drag:[D(260,640,1, 420,788)], arrows:[A(1080,530,2)] });
+
+LV.push({ name:'Up and Over', ch:2,
+  black:{x:170,y:F}, white:{x:1430,y:620}, launch:{vx:300,vy:0},
+  rects:[...base(), [1000,640,40,180], [1100,620,500,24]],
+  doors:[{x1:1020,y1:470,x2:1020,y2:640,trig:{k:'button'}}],
+  buttons:[{x:700,y:796,door:0}],
+  drag:[D(300,560,1, 820,788)] });
+
+LV.push({ name:'Switchback', ch:2,
+  black:{x:170,y:F}, white:{x:260,y:460}, launch:{vx:300,vy:0},
+  rects:[...base(), [120,460,330,24], [520,620,1080,24]],
+  doors:[{x1:470,y1:236,x2:470,y2:460,trig:{k:'button'}}],
+  buttons:[{x:900,y:596,door:0}],
+  arrows:[A(1450,590,9)],
+  drag:[D(300,640,1, 405,788), D(330,640,11, 620,590)] });
+
+LV.push({ name:'The Vault', ch:2,
+  black:{x:170,y:F}, white:{x:1330,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [1140,640,40,180], [1500,640,40,180], [1140,640,160,24], [1400,640,140,24]],
+  doors:[{x1:1300,y1:640,x2:1400,y2:640,trig:{k:'button'}}],
+  buttons:[{x:620,y:796,door:0}],
+  drag:[D(300,560,1, 1030,788)] });
+
+LV.push({ name:'Echo Timing', ch:2,
+  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[700,1160]]), ...walls()],
+  doors:[{x1:1280,y1:600,x2:1280,y2:814,trig:{k:'button'}}],
+  buttons:[{x:540,y:796,door:0}],
+  osc:[O(660,560,1,2,1.8)],
+  drag:[D(300,560,12, 660,788)] });
+
+LV.push({ name:'Hollow Heart', ch:2,
+  black:{x:150,y:F}, white:{x:1460,y:560}, launch:{vx:300,vy:0},
+  rects:[...base(), [560,620,220,24], [1060,640,40,180], [1300,560,300,24]],
+  doors:[{x1:1080,y1:460,x2:1080,y2:640,trig:{k:'button'}}],
+  buttons:[{x:650,y:596,door:0}],
+  arrows:[A(1270,790,12)],
+  drag:[D(260,640,1, 470,788), D(300,640,1, 836,788), D(340,640,1, 1270,560)] });
+
+// ---------------- Chapter 3 · Echo Chasm (trap doors) ----------------
+LV.push({ name:'Trap Door 101', ch:3,
+  black:{x:170,y:F}, white:{x:900,y:1000}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[700,1100]]), ...walls(),
+        [620,1000,560,40], [620,820,40,180], [1140,820,40,180]],
+  doors:[{x1:700,y1:814,x2:1100,y2:814,trig:{k:'touch',delay:0.45}}],
+  arrows:[A(520,790,2)] });
+
+LV.push({ name:'Timed Drop', ch:3,
+  black:{x:170,y:F}, white:{x:880,y:1000}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[700,1060]]), ...walls(),
+        [660,1000,480,40], [660,820,40,180], [1060,820,40,180]],
+  doors:[{x1:700,y1:814,x2:1060,y2:814,trig:{k:'timed',t:1.4}}],
+  drag:[D(300,640,2, 400,790)] });
+
+LV.push({ name:'Sprint the Span', ch:3,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:340,vy:0},
+  rects:[...floorPits([[620,1060]]), ...walls()],
+  doors:[{x1:620,y1:828,x2:1060,y2:828,trig:{k:'touch',delay:0.62}}],
+  arrows:[A(520,790,3)] });
+
+LV.push({ name:'Linger and Fall', ch:3,
+  black:{x:150,y:F}, white:{x:840,y:1000}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[560,1120]]), ...walls(), [520,1000,640,40], [520,820,40,180], [1120,820,40,180]],
+  doors:[{x1:560,y1:814,x2:1120,y2:814,trig:{k:'touch',delay:0.40}}],
+  arrows:[A(430,792,2)],
+  drag:[D(260,600,9, 1010,760)] });
+
+LV.push({ name:'Choose Your Fall', ch:3,
+  black:{x:150,y:F}, white:{x:1180,y:1010}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[520,820],[980,1380]]), ...walls(),
+        [480,1010,380,40],[940,1010,480,40],
+        [480,820,40,190],[820,820,40,190],[940,820,40,190],[1380,820,40,190]],
+  doors:[{x1:520,y1:814,x2:820,y2:814,trig:{k:'touch',delay:0.42}},
+         {x1:980,y1:814,x2:1380,y2:814,trig:{k:'touch',delay:0.42}}],
+  drag:[D(260,600,2, 272,792)] });
+
+LV.push({ name:'Armed Gate', ch:3,
+  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [700,620,120,24], [1040,620,20,24]],
+  doors:[{x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}},
+         {x1:820,y1:632,x2:1040,y2:632,trig:{k:'touch',delay:0.42}}],
+  buttons:[{x:520,y:796,door:0}],
+  drag:[D(300,620,1, 600,788)] });
+
+LV.push({ name:'Chasm Run', ch:3,
+  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
+  rects:[...floorPits([[440,760],[900,1240]]), ...walls()],
+  doors:[{x1:440,y1:828,x2:760,y2:828,trig:{k:'touch',delay:0.5}},
+         {x1:900,y1:828,x2:1240,y2:828,trig:{k:'touch',delay:0.5}}],
+  arrows:[A(380,792,3), A(840,792,3)] });
+
+LV.push({ name:'The Oubliette', ch:3,
+  black:{x:170,y:F}, white:{x:800,y:1040}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[600,1000]]), ...walls(),
+        [560,1040,480,40],[560,820,40,220],[1000,820,40,220]],
+  doors:[{x1:600,y1:814,x2:1000,y2:814,trig:{k:'touch',delay:0.45}},
+         {x1:600,y1:930,x2:1000,y2:930,trig:{k:'touch',delay:0.45}}],
+  arrows:[A(480,792,2)],
+  drag:[D(300,560,12, 1240,720)] });
+
+LV.push({ name:'Drop In, Swing Out', ch:3,
+  black:{x:170,y:F}, white:{x:1430,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [680,460,260,24]],
+  doors:[{x1:720,y1:456,x2:900,y2:456,trig:{k:'touch',delay:0.4}}],
+  osc:[O(810,640,2,4,2.0)],
+  drag:[D(300,600,1, 560,788)] });
+
+LV.push({ name:'Echo Chasm', ch:3,
+  black:{x:150,y:F}, white:{x:1460,y:620}, launch:{vx:320,vy:0},
+  rects:[...floorPits([[560,1000]]), ...walls(),
+        [520,1000,560,40],[520,820,40,180],[1040,820,40,180],
+        [1300,620,300,24]],
+  doors:[{x1:560,y1:828,x2:1000,y2:828,trig:{k:'touch',delay:0.55}},
+         {x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}}],
+  buttons:[{x:780,y:976,door:1}],
+  arrows:[A(760,960,1)],
+  drag:[D(260,560,1, 1240,788)] });
+
+// ---------------- Chapter 4 · Underground Lake (flippers) ----------------
+LV.push({ name:'Flip Side', ch:4,
+  black:{x:170,y:F}, white:{x:1420,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [800,660,80,160]],
+  flippers:[{x:640,y:790,h:1}],
+  arrows:[A(1100,790,3)] });
+
+LV.push({ name:'Skipping Stone', ch:4,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
+  rects:[...floorPits([[520,1240]]), ...walls(), [520,990,720,40],[520,820,40,170],[1240,820,40,170]],
+  flippers:[{x:760,y:960,h:1},{x:1120,y:960,h:1}],
+  arrows:[A(440,792,2)] });
+
+LV.push({ name:'Pinball Alley', ch:4,
+  black:{x:170,y:F}, white:{x:1430,y:640}, launch:{vx:300,vy:0},
+  rects:[...base(), [980,640,60,180], [1300,640,300,24]],
+  flippers:[{x:700,y:790,h:1},{x:1180,y:790,h:1}],
+  drag:[D(300,560,2, 480,788)] });
+
+LV.push({ name:'Geyser', ch:4,
+  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [620,200,70,420], [930,200,70,420]],
+  flippers:[{x:800,y:780,h:12}],
+  arrows:[A(810,560,12), A(810,330,2)],
+  drag:[D(300,600,2, 540,788)] });
+
+LV.push({ name:'Across the Lake', ch:4,
+  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
+  rects:[...floorPits([[440,1300]]), ...walls(), [440,970,860,40],[440,820,40,150],[1300,820,40,150]],
+  flippers:[{x:620,y:940,h:1},{x:1080,y:940,h:1}],
+  arrows:[A(380,792,2)] });
+
+LV.push({ name:'Flip the Switch', ch:4,
+  black:{x:170,y:F}, white:{x:1480,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[1060,1400]]), ...walls(), [560,620,220,24]],
+  doors:[{x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
+  buttons:[{x:660,y:596,door:0}],
+  flippers:[{x:980,y:790,h:1}],
+  drag:[D(300,600,1, 470,788)] });
+
+LV.push({ name:'Flip the Trap', ch:4,
+  black:{x:170,y:F}, white:{x:980,y:1000}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[760,1200]]), ...walls(), [720,1000,520,40],[720,820,40,180],[1200,820,40,180]],
+  doors:[{x1:760,y1:814,x2:1200,y2:814,trig:{k:'touch',delay:0.4}}],
+  flippers:[{x:560,y:790,h:2}],
+  arrows:[A(330,792,3)] });
+
+LV.push({ name:'Undertow', ch:4,
+  black:{x:150,y:F}, white:{x:1460,y:560}, launch:{vx:300,vy:0},
+  rects:[...base(), [1180,560,420,24]],
+  osc:[O(820,645,12,2,2.0)],
+  flippers:[{x:600,y:790,h:1}],
+  drag:[D(300,640,3, 360,790)] });
+
+LV.push({ name:'Lakebed Vault', ch:4,
+  black:{x:170,y:F}, white:{x:1340,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [1150,640,40,180],[1510,640,40,180],[1150,640,170,24],[1420,640,130,24]],
+  flippers:[{x:620,y:790,h:1}],
+  drag:[D(300,560,1, 852,672)] });
+
+LV.push({ name:'Lake Boss', ch:4,
+  black:{x:130,y:F}, white:{x:1460,y:620}, launch:{vx:340,vy:0},
+  rects:[...floorPits([[440,1100]]), ...walls(), [440,970,660,40],[440,820,40,150],[1100,820,40,150],
+        [1340,620,260,24]],
+  doors:[{x1:1230,y1:480,x2:1230,y2:814,trig:{k:'button'}}],
+  buttons:[{x:380,y:796,door:0}],
+  flippers:[{x:620,y:940,h:1},{x:940,y:940,h:1}],
+  drag:[D(260,560,1, 1240,788)] });
+
+// ---------------- Chapter 5 · The Deep (portals) ----------------
+LV.push({ name:'First Warp', ch:5,
+  black:{x:170,y:F}, white:{x:300,y:330}, launch:{vx:300,vy:0},
+  rects:[...base(), [160,330,520,24], [640,156,40,174]],
+  portals:[{ax:1100,ay:790,bx:340,by:240}],
+  arrows:[A(640,790,3)] });
+
+LV.push({ name:'Warp Speed', ch:5,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:320,vy:0},
+  rects:[...floorPits([[700,1240]]), ...walls()],
+  portals:[{ax:600,ay:790,bx:1280,by:600}],
+  arrows:[A(440,790,3)] });
+
+LV.push({ name:'Round Trip', ch:5,
+  black:{x:170,y:F}, white:{x:240,y:430}, launch:{vx:300,vy:0},
+  rects:[...base(), [120,430,330,24], [450,260,40,170], [620,660,90,160]],
+  portals:[{ax:1300,ay:790,bx:180,by:360}],
+  arrows:[A(880,790,3)],
+  drag:[D(300,600,1, 470,790)] });
+
+LV.push({ name:'Two Doors Down', ch:5,
+  black:{x:150,y:F}, white:{x:1440,y:520}, launch:{vx:300,vy:0},
+  rects:[...base(), [1280,520,320,24]],
+  portals:[{ax:700,ay:790,bx:300,by:300},{ax:980,ay:560,bx:1360,by:300}],
+  arrows:[A(560,790,3)],
+  drag:[D(360,560,3, 300,560)] });
+
+LV.push({ name:'Warped Switch', ch:5,
+  black:{x:170,y:F}, white:{x:1440,y:F}, launch:{vx:300,vy:0},
+  rects:[...base(), [560,300,220,24]],
+  doors:[{x1:1180,y1:560,x2:1180,y2:814,trig:{k:'button'}}],
+  buttons:[{x:660,y:276,door:0}],
+  portals:[{ax:520,ay:790,bx:600,by:200}],
+  arrows:[A(360,790,3), A(900,560,3)],
+  drag:[D(300,560,2, 896,314)] });
+
+LV.push({ name:'Warp the Trap', ch:5,
+  black:{x:170,y:F}, white:{x:1100,y:1000}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[800,1240]]), ...walls(), [760,1000,520,40],[760,820,40,180],[1240,820,40,180]],
+  doors:[{x1:800,y1:814,x2:1240,y2:814,trig:{k:'touch',delay:0.42}}],
+  portals:[{ax:520,ay:790,bx:900,by:520}],
+  arrows:[A(1000,650,5)] });
+
+LV.push({ name:'Warp and Flip', ch:5,
+  black:{x:170,y:F}, white:{x:1430,y:260}, launch:{vx:300,vy:0},
+  rects:[...base(), [1300,260,300,24]],
+  portals:[{ax:560,ay:790,bx:1080,by:700}],
+  flippers:[{x:1160,y:760,h:12}],
+  arrows:[A(360,790,3)],
+  drag:[D(300,560,1, 1150,454)] });
+
+LV.push({ name:'Deep Pendulum', ch:5,
+  black:{x:150,y:F}, white:{x:1460,y:F}, launch:{vx:300,vy:0},
+  rects:[...floorPits([[640,1180]]), ...walls()],
+  portals:[{ax:500,ay:790,bx:760,by:330}],
+  osc:[O(980,460,2,4,2.0)],
+  arrows:[A(340,790,3)] });
+
+LV.push({ name:'The Gauntlet', ch:5,
+  black:{x:130,y:F}, white:{x:1480,y:F}, launch:{vx:340,vy:0},
+  rects:[...floorPits([[480,840]]), ...walls(), [840,560,300,24], [440,1010,440,40],[440,820,40,190],[840,820,40,230]],
+  doors:[{x1:1320,y1:600,x2:1320,y2:814,trig:{k:'button'}}],
+  buttons:[{x:1000,y:536,door:0}],
+  portals:[{ax:660,ay:980,bx:900,by:480}],
+  flippers:[{x:560,y:980,h:2}],
+  arrows:[A(400,792,3), A(1180,530,4)] });
+
+LV.push({ name:'Heart of the Mountain', ch:5,
+  black:{x:130,y:F}, white:{x:880,y:440}, launch:{vx:320,vy:0},
+  rects:[...base(), [800,440,200,24]],
+  doors:[{x1:1180,y1:620,x2:1180,y2:814,trig:{k:'button'}}],
+  buttons:[{x:560,y:796,door:0}],
+  portals:[{ax:1430,ay:790,bx:1320,by:600}],
+  flippers:[{x:1320,y:640,h:11}],
+  arrows:[A(360,790,3)],
+  drag:[D(300,560,10, 1180,437)] });
+
+LV.forEach((l,i)=>{ l.id=i+1; });
+return LV;
+})();
+
+
+/* ============ embedded reference solutions + thresholds ============ */
+const SOLVED = [
+ {
+  "id": 1,
+  "ok": true,
+  "sol": [],
+  "score": 901,
+  "two": 761,
+  "three": 886
+ },
+ {
+  "id": 2,
+  "ok": true,
+  "sol": [
+   {
+    "x": 592,
+    "y": 742
+   }
+  ],
+  "score": 895,
+  "two": 755,
+  "three": 880
+ },
+ {
+  "id": 3,
+  "ok": true,
+  "sol": [
+   {
+    "x": 950,
+    "y": 786
+   }
+  ],
+  "score": 837,
+  "two": 697,
+  "three": 822
+ },
+ {
+  "id": 4,
+  "ok": true,
+  "sol": [
+   {
+    "x": 560,
+    "y": 788
+   }
+  ],
+  "score": 882,
+  "two": 742,
+  "three": 867
+ },
+ {
+  "id": 5,
+  "ok": true,
+  "sol": [
+   {
+    "x": 420,
+    "y": 790
+   },
+   {
+    "x": 940,
+    "y": 790
+   }
+  ],
+  "score": 889,
+  "two": 749,
+  "three": 874
+ },
+ {
+  "id": 6,
+  "ok": true,
+  "sol": [
+   {
+    "x": 760,
+    "y": 786
+   }
+  ],
+  "score": 861,
+  "two": 721,
+  "three": 846
+ },
+ {
+  "id": 7,
+  "ok": true,
+  "sol": [
+   {
+    "x": 800,
+    "y": 786
+   }
+  ],
+  "score": 738,
+  "two": 598,
+  "three": 723
+ },
+ {
+  "id": 8,
+  "ok": true,
+  "sol": [
+   {
+    "x": 520,
+    "y": 788
+   }
+  ],
+  "score": 883,
+  "two": 743,
+  "three": 868
+ },
+ {
+  "id": 9,
+  "ok": true,
+  "sol": [
+   {
+    "x": 820,
+    "y": 786
+   }
+  ],
+  "score": 641,
+  "two": 501,
+  "three": 626
+ },
+ {
+  "id": 10,
+  "ok": true,
+  "sol": [
+   {
+    "x": 582,
+    "y": 804
+   },
+   {
+    "x": 1150,
+    "y": 788
+   }
+  ],
+  "score": 855,
+  "two": 715,
+  "three": 840
+ },
+ {
+  "id": 11,
+  "ok": true,
+  "sol": [],
+  "score": 897,
+  "two": 757,
+  "three": 882
+ },
+ {
+  "id": 12,
+  "ok": true,
+  "sol": [
+   {
+    "x": 488,
+    "y": 820
+   }
+  ],
+  "score": 847,
+  "two": 707,
+  "three": 832
+ },
+ {
+  "id": 13,
+  "ok": true,
+  "sol": [],
+  "score": 893,
+  "two": 753,
+  "three": 878
+ },
+ {
+  "id": 14,
+  "ok": true,
+  "sol": [
+   {
+    "x": 438,
+    "y": 820
+   }
+  ],
+  "score": 846,
+  "two": 706,
+  "three": 831
+ },
+ {
+  "id": 15,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1152,
+    "y": 792
+   }
+  ],
+  "score": 832,
+  "two": 692,
+  "three": 817
+ },
+ {
+  "id": 16,
+  "ok": true,
+  "sol": [
+   {
+    "x": 884,
+    "y": 852
+   }
+  ],
+  "score": 889,
+  "two": 749,
+  "three": 874
+ },
+ {
+  "id": 17,
+  "ok": true,
+  "sol": [
+   {
+    "x": 405,
+    "y": 740
+   },
+   {
+    "x": 620,
+    "y": 590
+   }
+  ],
+  "score": 773,
+  "two": 633,
+  "three": 758
+ },
+ {
+  "id": 18,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1030,
+    "y": 788
+   }
+  ],
+  "score": 881,
+  "two": 741,
+  "three": 866
+ },
+ {
+  "id": 19,
+  "ok": true,
+  "sol": [
+   {
+    "x": 660,
+    "y": 788
+   }
+  ],
+  "score": 844,
+  "two": 704,
+  "three": 829
+ },
+ {
+  "id": 20,
+  "ok": true,
+  "sol": [
+   {
+    "x": 310,
+    "y": 868
+   },
+   {
+    "x": 836,
+    "y": 788
+   },
+   {
+    "x": 1270,
+    "y": 560
+   }
+  ],
+  "score": 779,
+  "two": 639,
+  "three": 764
+ },
+ {
+  "id": 21,
+  "ok": true,
+  "sol": [],
+  "score": 818,
+  "two": 678,
+  "three": 803
+ },
+ {
+  "id": 22,
+  "ok": true,
+  "sol": [
+   {
+    "x": 400,
+    "y": 790
+   }
+  ],
+  "score": 816,
+  "two": 676,
+  "three": 801
+ },
+ {
+  "id": 23,
+  "ok": true,
+  "sol": [],
+  "score": 893,
+  "two": 753,
+  "three": 878
+ },
+ {
+  "id": 24,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1010,
+    "y": 760
+   }
+  ],
+  "score": 872,
+  "two": 732,
+  "three": 857
+ },
+ {
+  "id": 25,
+  "ok": true,
+  "sol": [
+   {
+    "x": 272,
+    "y": 792
+   }
+  ],
+  "score": 876,
+  "two": 736,
+  "three": 861
+ },
+ {
+  "id": 26,
+  "ok": true,
+  "sol": [
+   {
+    "x": 600,
+    "y": 788
+   }
+  ],
+  "score": 846,
+  "two": 706,
+  "three": 831
+ },
+ {
+  "id": 27,
+  "ok": true,
+  "sol": [],
+  "score": 889,
+  "two": 749,
+  "three": 874
+ },
+ {
+  "id": 28,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1240,
+    "y": 720
+   }
+  ],
+  "score": 804,
+  "two": 664,
+  "three": 789
+ },
+ {
+  "id": 29,
+  "ok": true,
+  "sol": [
+   {
+    "x": 560,
+    "y": 788
+   }
+  ],
+  "score": 884,
+  "two": 744,
+  "three": 869
+ },
+ {
+  "id": 30,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1096,
+    "y": 788
+   }
+  ],
+  "score": 874,
+  "two": 734,
+  "three": 859
+ },
+ {
+  "id": 31,
+  "ok": true,
+  "sol": [],
+  "score": 887,
+  "two": 747,
+  "three": 872
+ },
+ {
+  "id": 32,
+  "ok": true,
+  "sol": [],
+  "score": 879,
+  "two": 739,
+  "three": 864
+ },
+ {
+  "id": 33,
+  "ok": true,
+  "sol": [
+   {
+    "x": 480,
+    "y": 788
+   }
+  ],
+  "score": 852,
+  "two": 712,
+  "three": 837
+ },
+ {
+  "id": 34,
+  "ok": true,
+  "sol": [
+   {
+    "x": 700,
+    "y": 724
+   }
+  ],
+  "score": 892,
+  "two": 752,
+  "three": 877
+ },
+ {
+  "id": 35,
+  "ok": true,
+  "sol": [],
+  "score": 875,
+  "two": 735,
+  "three": 860
+ },
+ {
+  "id": 36,
+  "ok": true,
+  "sol": [
+   {
+    "x": 470,
+    "y": 788
+   }
+  ],
+  "score": 803,
+  "two": 663,
+  "three": 788
+ },
+ {
+  "id": 37,
+  "ok": true,
+  "sol": [],
+  "score": 824,
+  "two": 684,
+  "three": 809
+ },
+ {
+  "id": 38,
+  "ok": true,
+  "sol": [
+   {
+    "x": 360,
+    "y": 790
+   }
+  ],
+  "score": 880,
+  "two": 740,
+  "three": 865
+ },
+ {
+  "id": 39,
+  "ok": true,
+  "sol": [
+   {
+    "x": 996,
+    "y": 832
+   }
+  ],
+  "score": 866,
+  "two": 726,
+  "three": 851
+ },
+ {
+  "id": 40,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1080,
+    "y": 708
+   }
+  ],
+  "score": 864,
+  "two": 724,
+  "three": 849
+ },
+ {
+  "id": 41,
+  "ok": true,
+  "sol": [],
+  "score": 798,
+  "two": 658,
+  "three": 783
+ },
+ {
+  "id": 42,
+  "ok": true,
+  "sol": [],
+  "score": 867,
+  "two": 727,
+  "three": 852
+ },
+ {
+  "id": 43,
+  "ok": true,
+  "sol": [
+   {
+    "x": 470,
+    "y": 790
+   }
+  ],
+  "score": 795,
+  "two": 655,
+  "three": 780
+ },
+ {
+  "id": 44,
+  "ok": true,
+  "sol": [
+   {
+    "x": 800,
+    "y": 504
+   }
+  ],
+  "score": 771,
+  "two": 631,
+  "three": 756
+ },
+ {
+  "id": 45,
+  "ok": true,
+  "sol": [
+   {
+    "x": 896,
+    "y": 314
+   }
+  ],
+  "score": 806,
+  "two": 666,
+  "three": 791
+ },
+ {
+  "id": 46,
+  "ok": true,
+  "sol": [],
+  "score": 806,
+  "two": 666,
+  "three": 791
+ },
+ {
+  "id": 47,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1102,
+    "y": 390
+   }
+  ],
+  "score": 837,
+  "two": 697,
+  "three": 822
+ },
+ {
+  "id": 48,
+  "ok": true,
+  "sol": [],
+  "score": 838,
+  "two": 698,
+  "three": 823
+ },
+ {
+  "id": 49,
+  "ok": true,
+  "sol": [],
+  "score": 546,
+  "two": 406,
+  "three": 531
+ },
+ {
+  "id": 50,
+  "ok": true,
+  "sol": [
+   {
+    "x": 1180,
+    "y": 437
+   }
+  ],
+  "score": 834,
+  "two": 694,
+  "three": 819
+ }
+];
+/* merge thresholds onto levels */
+LEVELS.forEach((l,i)=>{ const s=SOLVED[i]; l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; });
+
+/* ============ persistence ============ */
+const SAVE_KEY='batphysics.v1';
+const Store={
+  data:{stars:{},best:{},unlocked:1},
+  load(){ try{const r=localStorage.getItem(SAVE_KEY); if(r)this.data=JSON.parse(r);}catch(e){} 
+          if(!this.data.stars)this.data={stars:{},best:{},unlocked:1}; },
+  save(){ try{localStorage.setItem(SAVE_KEY,JSON.stringify(this.data));}catch(e){} },
+  starsFor(id){return this.data.stars[id]||0;},
+  bestFor(id){return this.data.best[id]||0;},
+  unlocked(id){return id<=this.data.unlocked;},
+  record(id,stars,score){
+    if(stars>this.starsFor(id))this.data.stars[id]=stars;
+    if(score>this.bestFor(id))this.data.best[id]=score;
+    if(stars>=1 && id+1>this.data.unlocked && id<50)this.data.unlocked=id+1;
+    this.save();
+  },
+  totalStars(){let s=0;for(const k in this.data.stars)s+=this.data.stars[k];return s;},
+  totalScore(){let s=0;for(const k in this.data.best)s+=this.data.best[k];return s;},
+  cleared(){return Object.keys(this.data.best).filter(k=>this.data.best[k]>0).length;}
+};
+
+/* ============ canvas + camera ============ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let VIEW={s:1,ox:0,oy:0};
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=window.innerWidth,h=window.innerHeight;
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.width=w+'px'; cv.style.height=h+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const s=Math.min(w/BP.W,h/BP.H); VIEW.s=s;
+  VIEW.ox=(w-BP.W*s)/2; VIEW.oy=(h-BP.H*s)/2; VIEW.W=w; VIEW.H=h;
+}
+window.addEventListener('resize',resize);
+function toWorld(cx,cy){return{x:(cx-VIEW.ox)/VIEW.s,y:(cy-VIEW.oy)/VIEW.s};}
+function toScreen(wx,wy){return{x:wx*VIEW.s+VIEW.ox,y:wy*VIEW.s+VIEW.oy};}
+
+/* ============ rendering ============ */
+const Render=(()=>{
+  function hr(h){return BP.hourDir(h);}
+  function bg(){
+    const g=ctx.createLinearGradient(0,VIEW.oy,0,VIEW.oy+BP.H*VIEW.s);
+    g.addColorStop(0,'#0a1424'); g.addColorStop(.55,'#0d1b30'); g.addColorStop(1,'#081019');
+    ctx.fillStyle='#05070d'; ctx.fillRect(0,0,VIEW.W,VIEW.H);
+    ctx.fillStyle=g;
+    const p=toScreen(0,0);
+    ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
+    // glow pool behind
+    const cx=toScreen(BP.W/2,BP.H*0.78);
+    const rg=ctx.createRadialGradient(cx.x,cx.y,10,cx.x,cx.y,520*VIEW.s);
+    rg.addColorStop(0,'#15433d55'); rg.addColorStop(1,'#15433d00');
+    ctx.fillStyle=rg; ctx.fillRect(p.x,p.y,BP.W*VIEW.s,BP.H*VIEW.s);
+  }
+  function rock(L){
+    ctx.save();
+    for(const r of (L.rects||[])){
+      const a=toScreen(r[0],r[1]);
+      const w=r[2]*VIEW.s,h=r[3]*VIEW.s;
+      if(r[1]<-50||r[0]<-40||r[0]>1570) continue; // skip frame walls visually
+      const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
+      g.addColorStop(0,'#26324f'); g.addColorStop(1,'#121a2c');
+      ctx.fillStyle=g;
+      rr(a.x,a.y,w,h,Math.min(10*VIEW.s,h/2,w/2)); ctx.fill();
+      ctx.strokeStyle='#3b4d74'; ctx.lineWidth=1.5; ctx.stroke();
+      // top crystal rim
+      ctx.fillStyle='#46608f'; ctx.fillRect(a.x,a.y,w,2);
+    }
+    ctx.restore();
+  }
+  function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+  function doors(L,w){
+    (L.doors||[]).forEach((d,i)=>{
+      if(w.doorOpen[i])return;
+      const a=toScreen(d.x1,d.y1),b=toScreen(d.x2,d.y2);
+      ctx.strokeStyle='#c9d6f0'; ctx.lineWidth=Math.max(3,7*VIEW.s); ctx.lineCap='round';
+      const arm = d.trig.k==='touch' && w.doorTimer[i]>=0;
+      if(arm){ctx.strokeStyle='#ff9b4d';}
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      // pivot dot
+      ctx.fillStyle=arm?'#ff9b4d':'#9fb4dd';
+      ctx.beginPath();ctx.arc(a.x,a.y,Math.max(3,5*VIEW.s),0,7);ctx.fill();
+    });
+  }
+  function buttons(L,w){
+    (L.buttons||[]).forEach((b,i)=>{
+      const p=toScreen(b.x,b.y); const down=w.btnDown[i];
+      ctx.fillStyle=down?'#2a3450':'#3a2a14';
+      rr(p.x-26*VIEW.s,p.y-(down?5:11)*VIEW.s,52*VIEW.s,(down?10:16)*VIEW.s,5*VIEW.s);ctx.fill();
+      ctx.fillStyle=down?'#39507e':'#ffb347';
+      rr(p.x-22*VIEW.s,p.y-(down?3:9)*VIEW.s,44*VIEW.s,7*VIEW.s,3*VIEW.s);ctx.fill();
+    });
+  }
+  function flippers(L,w){
+    (L.flippers||[]).forEach((f,i)=>{
+      const p=toScreen(f.x,f.y); const d=hr(f.h);
+      const ang=Math.atan2(d.y,d.x);
+      const kick=w.flipAnim[i]||0;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang-Math.PI/2);
+      const len=64*VIEW.s*(1+kick*0.12);
+      ctx.fillStyle='#1a2238'; rr(-15*VIEW.s,-8*VIEW.s,30*VIEW.s,len,8*VIEW.s);ctx.fill();
+      const g=ctx.createLinearGradient(0,0,0,-len);
+      g.addColorStop(0,'#37e0c8'); g.addColorStop(1,'#1aa89a');
+      ctx.fillStyle=g; rr(-11*VIEW.s,-len,22*VIEW.s,len,7*VIEW.s);ctx.fill();
+      ctx.fillStyle='#dffdf7'; ctx.beginPath();ctx.arc(0,-len+9*VIEW.s,6*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function portals(L,w){
+    (L.portals||[]).forEach((pt,i)=>{
+      const t=performance.now()/1000;
+      drawPortal(toScreen(pt.ax,pt.ay),'#8a7bff',t);
+      drawPortal(toScreen(pt.bx,pt.by),'#ff7bd0',t+1);
+    });
+  }
+  function drawPortal(p,col,t){
+    ctx.save();ctx.translate(p.x,p.y);
+    for(let k=0;k<3;k++){
+      const r=(18+k*8)*VIEW.s; const a=t*2+k;
+      ctx.strokeStyle=col+(k===0?'ff':'88'); ctx.lineWidth=3*VIEW.s;
+      ctx.beginPath();
+      for(let s=0;s<=20;s++){const th=a+s/20*Math.PI*1.6;ctx.lineTo(Math.cos(th)*r,Math.sin(th)*r*0.8);}
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function arrows(L,w,launched){
+    const VS=1.0;                       // disc now exactly matches the physics trigger radius
+    for(const a of w.arrows){
+      const p=toScreen(a.x,a.y);
+      const h=BP.arrowAngleHour(a,w.t);
+      const d=hr(h); const ang=Math.atan2(d.y,d.x);
+      ctx.save();ctx.translate(p.x,p.y);
+      const R=BP.ARROW_R*VIEW.s*VS;
+      const spent=!a.armed;
+      // draggable hint ring (pulsing) before launch
+      if(a.kind==='drag' && !launched){
+        const pulse=0.5+0.5*Math.sin(performance.now()/350);
+        ctx.strokeStyle='rgba(55,224,200,'+(0.25+0.4*pulse)+')';
+        ctx.lineWidth=3*VIEW.s; ctx.setLineDash([6*VIEW.s,7*VIEW.s]);
+        ctx.beginPath();ctx.arc(0,0,R+10*VIEW.s,0,7);ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // disc
+      const g=ctx.createRadialGradient(0,0,2,0,0,R);
+      if(a.kind==='drag'){g.addColorStop(0,'#fff');g.addColorStop(1,'#cfe0ff');}
+      else if(a.kind==='osc'){g.addColorStop(0,'#fff');g.addColorStop(1,'#ffd9a0');}
+      else {g.addColorStop(0,'#243154');g.addColorStop(1,'#0c1326');}
+      ctx.globalAlpha=spent?0.35:1;
+      ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
+      ctx.lineWidth=2.5*VIEW.s; ctx.strokeStyle=a.kind==='fix'?'#5878ad':'#37e0c8'; ctx.stroke();
+      // arrowhead
+      ctx.rotate(ang);
+      const col=a.kind==='fix'?'#dff4ff':(a.kind==='osc'?'#a9651b':'#13284a');
+      ctx.fillStyle=col;
+      const s=R*0.6;
+      ctx.beginPath();ctx.moveTo(s,0);ctx.lineTo(-s*0.5,s*0.7);ctx.lineTo(-s*0.5,-s*0.7);ctx.closePath();ctx.fill();
+      ctx.fillRect(-s*0.72,-s*0.24,s*0.55,s*0.48);
+      ctx.restore();
+      if(a.kind==='osc'){ // sweep guides
+        ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=.25;ctx.strokeStyle='#ffd9a0';ctx.lineWidth=2*VIEW.s;
+        [a.h1,a.h2].forEach(hh=>{const dd=hr(hh);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(dd.x*R*1.4,dd.y*R*1.4);ctx.stroke();});
+        ctx.restore();
+      }
+    }
+  }
+  function bat(x,y,white,label){
+    const p=toScreen(x,y); const s=VIEW.s*1.05;
+    ctx.save();ctx.translate(p.x,p.y-30*VIEW.s);
+    const body=white?'#dff4ff':'#16243e', ear=white?'#bfe0f5':'#0e1830';
+    // tail
+    ctx.strokeStyle=body;ctx.lineWidth=6*s;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(14*s,18*s);ctx.quadraticCurveTo(34*s,24*s,30*s,4*s);ctx.stroke();
+    // body
+    ctx.fillStyle=body;
+    ctx.beginPath();ctx.ellipse(0,8*s,18*s,20*s,0,0,7);ctx.fill();
+    // head
+    ctx.beginPath();ctx.arc(0,-12*s,16*s,0,7);ctx.fill();
+    // ears (bat-ish, tall)
+    ctx.fillStyle=ear;
+    ctx.beginPath();ctx.moveTo(-13*s,-20*s);ctx.lineTo(-20*s,-46*s);ctx.lineTo(-4*s,-26*s);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(13*s,-20*s);ctx.lineTo(20*s,-46*s);ctx.lineTo(4*s,-26*s);ctx.closePath();ctx.fill();
+    // eyes
+    ctx.fillStyle=white?'#16243e':'#dff4ff';
+    ctx.beginPath();ctx.arc(-6*s,-13*s,4.4*s,0,7);ctx.arc(6*s,-13*s,4.4*s,0,7);ctx.fill();
+    ctx.fillStyle='#ff5b6e';ctx.beginPath();ctx.arc(0,-6*s,2.6*s,0,7);ctx.fill();
+    ctx.restore();
+    if(label){
+      ctx.fillStyle='#cfe6ff';ctx.font=(13*VIEW.s|0)+'px Trebuchet MS';ctx.textAlign='center';
+      ctx.fillText(label,p.x,p.y-74*VIEW.s);
+    }
+  }
+  function trail(pts,col){
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=4*VIEW.s;ctx.setLineDash([2*VIEW.s,10*VIEW.s]);
+    ctx.lineCap='round';ctx.beginPath();let moved=false;
+    for(const pt of pts){ if(!pt){moved=false;continue;} const p=toScreen(pt.x,pt.y);
+      if(!moved){ctx.moveTo(p.x,p.y);moved=true;}else ctx.lineTo(p.x,p.y);}
+    ctx.stroke();ctx.restore();
+  }
+  function ball(p){
+    const s=toScreen(p.x,p.y);const R=BP.BALLR*VIEW.s;
+    ctx.save();
+    ctx.shadowColor='#ff6b6b';ctx.shadowBlur=14*VIEW.s;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,R,0,7);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#ff4d5e';
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.arc(s.x,s.y,R,0,Math.PI/2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.arc(s.x,s.y,R,Math.PI,Math.PI*1.5);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+  function frame(w,opts){
+    bg(); const L=w.lvl;
+    rock(L); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
+    if(opts.showTrail&&w.pts.length>1) trail(w.pts, w.won?'#37e0c8':'#5fd0ff');
+    arrows(L,w,opts.launched);
+    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to roll':'');
+    bat(L.white.x,L.white.y,true,'');
+    if(opts.launched) ball(w.p);
+  }
+  return {frame};
+})();
+
+/* ============ Game controller ============ */
+const Game=(()=>{
+  let L=null, w=null, launched=false, canFire=true, raf=0;
+  let placements=[];           // {x,y} for drag arrows
+  let dragIdx=-1, dragOff={x:0,y:0};
+  let viewer=false, autoPlacing=false;
+  let resolved=false;
+
+  function loadLevel(id, asViewer){
+    viewer=!!asViewer; resolved=false;
+    L=LEVELS[id-1];
+    placements=(L.drag||[]).map(d=>({x:d.x,y:d.y}));
+    rebuild(); launched=false; canFire=true;
+    document.getElementById('lvlName').innerHTML=
+      '<div id="lvlName2"><small>Level '+id+(viewer?' · viewer':'')+'</small>'+L.name+'</div>';
+    document.getElementById('scoreNum').textContent='999';
+    document.getElementById('result').classList.remove('on');
+    document.getElementById('viewerTag').style.display=viewer?'block':'none';
+    document.getElementById('viewerBadge').style.display=viewer?'flex':'none';
+    UI.go('game'); loop();
+  }
+  function rebuild(){ w=BP.makeWorld(L,placements); }
+
+  function fire(){
+    if(launched||!canFire) return;
+    launched=true; canFire=false; dragIdx=-1;
+  }
+  function retry(){ launched=false; canFire=true; resolved=false;
+    document.getElementById('result').classList.remove('on');
+    document.getElementById('scoreNum').textContent='999';
+    rebuild(); }
+  function next(){ const id=L.id+1; if(id<=50 && (viewer||Store.unlocked(id))) loadLevel(id,viewer); else UI.quitToSelect(); }
+
+  function starsForScore(s){ if(s>=L.three)return 3; if(s>=L.two)return 2; return 1; }
+
+  function finish(){
+    resolved=true; const won=w.won;
+    const sc=won?BP.score(w):0;
+    const stars=won?starsForScore(sc):0;
+    const r=document.getElementById('result');
+    document.getElementById('rTitle').textContent=won?'LEVEL COMPLETE!':(w.fail==='time'?'OUT OF TIME':'BALL LOST');
+    document.getElementById('rTitle').className=won?'win':'lose';
+    let starHtml='';
+    for(let i=1;i<=3;i++)starHtml+='<span class="'+(i<=stars?'f':'e')+'">★</span>';
+    document.getElementById('rStars').innerHTML=won?starHtml:'';
+    if(won){
+      const prevBest=viewer?0:Store.bestFor(L.id);
+      document.getElementById('rScore').innerHTML='<b>'+sc+'</b> points'+
+        (!viewer&&prevBest?'<span class="best">best '+Math.max(prevBest,sc)+' · ★ at '+L.two+' / '+L.three+'</span>'
+                          :'<span class="best">★★ at '+L.two+' · ★★★ at '+L.three+'</span>');
+      document.getElementById('rHint').textContent= stars<3 ? 'Shorter path = higher score. Find a tighter route for ★★★.' : 'Perfect route!';
+    } else {
+      document.getElementById('rScore').innerHTML='';
+      document.getElementById('rHint').textContent='Reposition your arrow(s) and try again.';
+    }
+    const nextBtn=document.getElementById('rNext');
+    const canNext = L.id<50 && (viewer || (won&&stars>=1) || Store.unlocked(L.id+1));
+    nextBtn.style.display=canNext?'inline-block':'none';
+    if(won && !viewer){ Store.record(L.id,stars,sc); UI.refreshTitle(); }
+    r.classList.add('on');
+  }
+
+  function viewerSolve(){
+    // animate the reference solution
+    if(L.refSol&&L.refSol.length) placements=L.refSol.map(p=>({x:p.x,y:p.y}));
+    retry(); setTimeout(()=>fire(),120);
+    UI.toast('Playing reference solution · score '+L.refScore);
+  }
+
+  // input
+  function onDown(cx,cy){
+    if(launched) return;
+    const wp=toWorld(cx,cy);
+    // pick nearest drag arrow within a generous grab radius (bigger than the visual disc)
+    let best=-1,bd=1e9;
+    (L.drag||[]).forEach((d,i)=>{
+      const dd=Math.hypot(wp.x-placements[i].x,wp.y-placements[i].y);
+      if(dd<bd&&dd<120){bd=dd;best=i;}
+    });
+    if(best>=0){ dragIdx=best; dragOff={x:placements[best].x-wp.x,y:placements[best].y-wp.y}; rebuild(); return; }
+    // otherwise: tap on/near the black bat rolls the ball
+    const db=Math.hypot(wp.x-L.black.x, wp.y-(L.black.y-26));
+    if(db<120){ fire(); }
+  }
+  function onMove(cx,cy){
+    if(dragIdx<0) return;
+    const wp=toWorld(cx,cy);
+    let nx=wp.x+dragOff.x, ny=wp.y+dragOff.y;
+    nx=Math.max(60,Math.min(1540,nx)); ny=Math.max(120,Math.min(806,ny));
+    placements[dragIdx]={x:nx,y:ny}; rebuild();
+  }
+  function onUp(){ dragIdx=-1; }
+
+  let last=0, acc=0;
+  function loop(){
+    cancelAnimationFrame(raf);
+    last=performance.now(); acc=0;
+    const tick=(ts)=>{
+      raf=requestAnimationFrame(tick);
+      let dt=(ts-last)/1000; last=ts;
+      if(dt>0.1)dt=0.1;                 // clamp after tab-switch
+      if(launched&&!w.done){
+        acc+=dt;
+        let guard=0;
+        while(acc>=BP.DT && !w.done && guard<600){ BP.step(w); acc-=BP.DT; guard++; }
+        document.getElementById('scoreNum').textContent=String(BP.score(w));
+        if(w.done&&!resolved) setTimeout(finish,420);
+      }
+      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched});
+    };
+    raf=requestAnimationFrame(tick);
+  }
+
+  return {loadLevel,fire,retry,next,onDown,onMove,onUp,viewerSolve,
+          get launched(){return launched;}, get viewer(){return viewer;}};
+})();
+
+/* pointer wiring — listen on the game screen overlay (it sits above the canvas),
+   so drags aren't swallowed by the overlay. HUD buttons stop propagation via their own handlers. */
+(function(){
+  let active=false;
+  const surface=document.getElementById('game');
+  const xy=e=>({x:e.clientX,y:e.clientY});
+  surface.addEventListener('pointerdown',e=>{
+    // ignore taps that start on an actual control (buttons, pills)
+    if(e.target.closest('.icbtn,.btn,#result')) return;
+    active=true; const p=xy(e); Game.onDown(p.x,p.y);
+  });
+  surface.addEventListener('pointermove',e=>{if(active){const p=xy(e);Game.onMove(p.x,p.y);}});
+  window.addEventListener('pointerup',()=>{active=false;Game.onUp();});
+  window.addEventListener('pointercancel',()=>{active=false;Game.onUp();});
+})();
+
+/* ============ UI ============ */
+const UI=(()=>{
+  let curChapter=1;
+  function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    document.getElementById(id).classList.add('on');}
+  function toTitle(){go('title');refreshTitle();}
+  function play(){ // resume at first unlocked-but-uncleared, else level 1
+    let id=1; for(let i=1;i<=50;i++){ if(Store.unlocked(i)&&!Store.bestFor(i)){id=i;break;} if(Store.unlocked(i))id=i; }
+    Game.loadLevel(id,false);
+  }
+  function refreshTitle(){
+    document.getElementById('tStars').textContent=Store.totalStars();
+    document.getElementById('tScore').textContent=Store.totalScore();
+    document.getElementById('tDone').textContent=Store.cleared()+'/50';
+  }
+  function showSelect(){buildTabs();buildGrid();go('select');}
+  const CH=['Cavern Mouth','Crystal Hollows','Echo Chasm','Underground Lake','The Deep'];
+  function buildTabs(){
+    const t=document.getElementById('chaptabs');t.innerHTML='';
+    CH.forEach((nm,i)=>{const c=i+1;const el=document.createElement('div');
+      el.className='chaptab'+(c===curChapter?' act':'');el.textContent=c+' · '+nm;
+      el.onclick=()=>{curChapter=c;buildTabs();buildGrid();};t.appendChild(el);});
+  }
+  function buildGrid(){
+    const g=document.getElementById('grid');g.innerHTML='';
+    LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{
+      const cell=document.createElement('div');
+      const locked=!Store.unlocked(l.id), st=Store.starsFor(l.id);
+      cell.className='cell'+(locked?' lock':'')+(st?' done':'');
+      let stars='';for(let i=1;i<=3;i++)stars+=(i<=st?'★':'·');
+      cell.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div>'+
+        (locked?'':'<div class="st">'+stars+'</div>');
+      if(!locked)cell.onclick=()=>Game.loadLevel(l.id,false);
+      g.appendChild(cell);
+    });
+  }
+  function quitToSelect(){document.getElementById('result').classList.remove('on');showSelect();}
+  function openViewer(){buildViewerGrid();}
+  function buildViewerGrid(){
+    // viewer = level select that ignores locks, launches in viewer mode
+    curChapter=1; buildTabs(); 
+    const g=document.getElementById('grid'); 
+    showSelect();
+    g.innerHTML='';
+    LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{
+      const cell=document.createElement('div');cell.className='cell done';
+      cell.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div><div class="st">▶ test</div>';
+      cell.onclick=()=>Game.loadLevel(l.id,true);
+      g.appendChild(cell);
+    });
+    // rebuild tabs to refresh viewer grid on chapter change
+    document.getElementById('chaptabs').querySelectorAll('.chaptab').forEach((el,i)=>{
+      el.onclick=()=>{curChapter=i+1;document.querySelectorAll('#chaptabs .chaptab').forEach((e,j)=>e.classList.toggle('act',j===i));
+        const gg=document.getElementById('grid');gg.innerHTML='';
+        LEVELS.filter(l=>l.ch===curChapter).forEach(l=>{const c=document.createElement('div');c.className='cell done';
+          c.innerHTML='<div class="n">'+l.id+'</div><div class="nm">'+l.name+'</div><div class="st">▶ test</div>';
+          c.onclick=()=>Game.loadLevel(l.id,true);gg.appendChild(c);});};
+    });
+    UI.toast('Viewer: every level unlocked. Tap ✦ in-game to auto-solve.');
+  }
+  function viewerSolve(){Game.viewerSolve();}
+  let tt;
+  function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
+    clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600);}
+  return {go,toTitle,play,showSelect,refreshTitle,quitToSelect,openViewer,viewerSolve,toast,
+    resetAll(){if(confirm('Erase all progress?')){localStorage.removeItem(SAVE_KEY);Store.data={stars:{},best:{},unlocked:1};refreshTitle();}}};
+})();
+
+/* boot */
+Store.load(); resize(); UI.refreshTitle();
+// idle render of title-time canvas (dark)
+(function idle(){ ctx.clearRect(0,0,VIEW.W,VIEW.H); requestAnimationFrame(()=>{}); })();
+</script>
+</body>
+</html>
