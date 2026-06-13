@@ -147,7 +147,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.5.3</div>
+  <div class="ver">v1.5.4</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -537,18 +537,37 @@ function step(w) {
     }
   });
 
-  // echos: SINGLE-USE. Ball accelerates THROUGH and exits along the echo's aim
-  // (its 0deg point) with a boost that decays back to gravity-normal. Once an echo
-  // fires it is spent for the rest of the attempt and cannot trigger again.
+  // echos: SINGLE-USE deflector. The echo points in an aim direction (its 0deg
+  // point). The ball is "sucked in" and slung OUT along the aim, but the exit is
+  // blended with which SIDE of the aim axis the ball entered: entering left of an
+  // up-pointing echo slings it up-AND-right; entering right slings it up-and-left.
+  // This lets an up echo move the ball sideways. Boost on exit, then decays.
   for (const a of w.arrows) {
     if (a.spent) continue;
     const d = Math.hypot(w.p.x - a.x, w.p.y - a.y);
     if (d < ARROW_R + BALLR) {
-      const dir = hourDir(arrowAngleHour(a, w.t));
-      w.v.x = dir.x * ECHO_BOOST;
-      w.v.y = dir.y * ECHO_BOOST;
+      const dir = hourDir(arrowAngleHour(a, w.t));        // aim (unit)
+      // perpendicular (right-hand) to the aim
+      const px = -dir.y, py = dir.x;
+      // signed offset of the ENTRY point from the aim axis: which side did it enter?
+      const rx = w.p.x - a.x, ry = w.p.y - a.y;
+      let side = (rx * px + ry * py) / ARROW_R;           // ~[-1..1], + = right side
+      side = Math.max(-1, Math.min(1, side));
+      // also factor the incoming travel direction so a ball moving across the echo
+      // keeps some of that momentum's sense (feels like being slung, not snapped).
+      const sp0 = Math.hypot(w.v.x, w.v.y) || 1;
+      const inx = w.v.x / sp0, iny = w.v.y / sp0;
+      const inSide = inx * px + iny * py;                 // incoming lateral sense
+      // blend: exit aim curved toward the side opposite the entry offset.
+      // entering on the LEFT (side<0) curves exit toward +right (-side*perp).
+      const curve = (-side * 0.85) + (inSide * 0.25);     // tangential strength
+      let ex = dir.x + px * curve;
+      let ey = dir.y + py * curve;
+      const el = Math.hypot(ex, ey) || 1; ex /= el; ey /= el;
+      w.v.x = ex * ECHO_BOOST;
+      w.v.y = ey * ECHO_BOOST;
       w.boost = 1;
-      a.spent = true;              // single-use: gone for the rest of this attempt
+      a.spent = true;              // single-use
       w.events.push({ t: w.t, kind: 'arrow', x: a.x, y: a.y });
     }
   }
@@ -771,7 +790,7 @@ return LV;
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":240,"y":444,"h":3},{"x":1421,"y":623,"h":1}],"score":856,"two":696,"three":836,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":402,"y":378,"h":4},{"x":1353,"y":739,"h":7},{"x":1273,"y":549,"h":9},{"x":976,"y":638,"h":1}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":251,"y":398,"h":3},{"x":668,"y":458,"h":3}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":1269,"y":755,"h":8},{"x":930,"y":588,"h":1},{"x":180,"y":410,"h":2},{"x":960,"y":717,"h":1}],"score":861,"two":701,"three":841,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":950,"y":410,"h":2},{"x":1415,"y":559,"h":1},{"x":1526,"y":662,"h":10},{"x":365,"y":521,"h":2}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":950,"y":740,"h":9},{"x":249,"y":559,"h":10},{"x":1232,"y":320,"h":3}],"score":852,"two":692,"three":832,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":156,"y":398,"h":4},{"x":950,"y":630,"h":1},{"x":1355,"y":274,"h":5}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":159,"y":545,"h":10},{"x":930,"y":586,"h":1},{"x":419,"y":751,"h":10}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":915,"y":391,"h":2},{"x":358,"y":441,"h":4},{"x":791,"y":185,"h":1}],"score":899,"two":739,"three":879,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":917,"y":168,"h":5},{"x":1370,"y":709,"h":3},{"x":400,"y":630,"h":1}],"score":853,"two":693,"three":833,"robust":1,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1170,"y":300,"h":5}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":910,"y":570,"h":0},{"x":630,"y":430,"h":2},{"x":210,"y":430,"h":2},{"x":980,"y":430,"h":1}],"score":901,"two":741,"three":881,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":427,"y":710,"h":9},{"x":1060,"y":630,"h":11},{"x":1107,"y":148,"h":5}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":1174,"y":372,"h":10},{"x":1500,"y":740,"h":1},{"x":1234,"y":762,"h":4},{"x":304,"y":740,"h":2}],"score":806,"two":646,"three":786,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":134,"y":585,"h":3},{"x":571,"y":575,"h":10},{"x":888,"y":520,"h":0},{"x":290,"y":410,"h":1}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":1172,"y":92,"h":2},{"x":1280,"y":410,"h":11},{"x":872,"y":577,"h":0}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":1480,"y":520,"h":1},{"x":395,"y":587,"h":5},{"x":478,"y":502,"h":0}],"score":844,"two":684,"three":824,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":444,"y":480,"h":10},{"x":1060,"y":410,"h":1},{"x":412,"y":454,"h":1}],"score":900,"two":740,"three":880,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":1150,"y":630,"h":11},{"x":290,"y":410,"h":3},{"x":1437,"y":658,"h":9}],"score":879,"two":719,"three":859,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i]; l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; });
 
