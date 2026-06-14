@@ -156,13 +156,13 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.9.0</div>
+  <div class="ver">v1.10.0</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
     <div><b id="ttStars">0</b><span>★ Stars</span></div>
     <div><b id="ttScore">0</b><span>Total Score</span></div>
-    <div><b id="ttDone">0/10</b><span>Cleared</span></div>
+    <div><b id="ttDone">0/60</b><span>Cleared</span></div>
   </div>
   <div class="row">
     <button class="btn primary" onclick="UI.play()">PLAY</button>
@@ -182,7 +182,7 @@
     <div class="seltotals">
       <div><b id="tScore">0</b><span>Total Score</span></div>
       <div><b id="tStars">0</b><span>★ Stars</span></div>
-      <div><b id="tDone">0/10</b><span>Cleared</span></div>
+      <div><b id="tDone">0/60</b><span>Cleared</span></div>
     </div>
   </div>
   <div class="levlist" id="levlist"></div>
@@ -231,7 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.9.0</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.10.0</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -1187,13 +1187,105 @@ LV.push({ name:'Heart of the Deep', ch:5, preFlipped:true, noAutoTerrain:true,
   secrets:[ R(1280,580,110,240) ],
   tools:[ Tosc(11,1), T(12), T(1), T(11), T(12) ] });
 
+// ===================== CHAPTER 6 · FOCUSED ITEM LEVELS (51-60) =====================
+// Each level sticks to a small set of items (per request): a few portals, a flipper,
+// a couple of trapdoors + a windmill, etc. Authored flipped; exit ledge under white.
+
+// 51 · Wormhole — three portals reposition the ball across the cavern.
+LV.push({ name:'Wormhole', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1280,560,320,22) ],
+  portals:[ {ax:560,ay:560,bx:980,by:420}, {ax:760,ay:680,bx:300,by:460}, {ax:1120,ay:600,bx:1300,by:500} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 52 · Kicker — a single flipper launches the ball up to the exit.
+LV.push({ name:'Kicker', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:480}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,740,1600,40), R(1280,520,320,22) ],
+  flippers:[ {x:1080,y:700,h:1} ],
+  tools:[ T(12), T(12) ] });
+
+// 53 · Twin Gates — two portals and a bouncy wall.
+LV.push({ name:'Twin Gates', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,600,300,22) ],
+  portals:[ {ax:520,ay:600,bx:1000,by:440}, {ax:760,ay:620,bx:300,by:440} ],
+  bouncy:[ R(1120,640,44,140) ],
+  tools:[ T(12), T(1) ] });
+
+// 54 · Drop & Flip — two trapdoors and a windmill below.
+LV.push({ name:'Drop & Flip', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,520,30), R(720,560,360,30), R(1280,560,320,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:300,y:546,door:0}, {x:900,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1080,y1:560,x2:1280,y2:560,trig:{k:'button'},flap:true} ],
+  windmills:[ {x:880,y:680,len:90,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 55 · Portal Climb — three portals stair-step the ball upward.
+LV.push({ name:'Portal Climb', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:560}, white:{x:1400,y:400}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1280,440,320,22),
+    R(120,600,260,22) ],
+  portals:[ {ax:520,ay:660,bx:760,by:560}, {ax:900,ay:620,bx:1100,by:500}, {ax:1180,ay:560,bx:1340,by:440} ],
+  tools:[ T(12), T(1) ] });
+
+// 56 · Double Kicker — two flippers in series.
+LV.push({ name:'Double Kicker', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:440}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,480,300,22) ],
+  flippers:[ {x:620,y:720,h:1}, {x:1080,y:700,h:12} ],
+  tools:[ T(12), T(11) ] });
+
+// 57 · Bounce Gate — a portal pair framed by bouncy walls.
+LV.push({ name:'Bounce Gate', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,640,300,22) ],
+  portals:[ {ax:700,ay:560,bx:1080,by:500} ],
+  bouncy:[ R(420,560,44,200), R(940,560,44,200) ],
+  tools:[ T(12), T(1) ] });
+
+// 58 · Trap Relay — two trapdoors, ball must drop through both.
+LV.push({ name:'Trap Relay', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,520,640,30), R(840,520,760,30),
+    R(0,700,900,30), R(1100,700,500,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:320,y:506,door:0}, {x:980,y:686,door:1} ],
+  doors:[ {x1:640,y1:520,x2:840,y2:520,trig:{k:'button'},flap:true},
+          {x1:900,y1:700,x2:1100,y2:700,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 59 · Flip & Warp — a flipper feeds a portal.
+LV.push({ name:'Flip & Warp', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,560,320,22) ],
+  flippers:[ {x:560,y:720,h:1} ],
+  portals:[ {ax:760,ay:420,bx:1120,by:480} ],
+  tools:[ T(12), T(11) ] });
+
+// 60 · The Exchange — three portals and a windmill finale.
+LV.push({ name:'The Exchange', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1400,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,640,300,22),
+    R(520,330,44,200) ],
+  portals:[ {ax:400,ay:620,bx:980,by:440}, {ax:1100,ay:560,bx:300,by:520}, {ax:760,ay:700,bx:1240,by:560} ],
+  windmills:[ {x:1080,y:680,len:80,dir:-1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
 LV.forEach((l,i)=>{ l.id=i+1; });
 return LV;
 })();
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":11,"ok":true,"sol":[{"x":510,"y":715,"h":11},{"x":676,"y":561,"h":2},{"x":1012,"y":641,"h":3},{"x":1486,"y":578,"h":10}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":12,"ok":true,"sol":[{"x":790,"y":400,"h":10},{"x":370,"y":540,"h":10},{"x":370,"y":540,"h":10}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":13,"ok":true,"sol":[{"x":120,"y":200,"h":12},{"x":120,"y":300,"h":12},{"x":120,"y":400,"h":12}],"score":876,"two":716,"three":856,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":21,"ok":true,"sol":[{"x":909,"y":245,"h":7},{"x":1170,"y":650,"h":11}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":22,"ok":true,"sol":[{"x":355,"y":436,"h":3},{"x":520,"y":680,"h":1},{"x":520,"y":530,"h":10}],"score":819,"two":659,"three":799,"robust":1,"extra":0},{"id":23,"ok":true,"sol":[{"x":984,"y":605,"h":8},{"x":970,"y":530,"h":1},{"x":207,"y":470,"h":1}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":24,"ok":true,"sol":[{"x":1420,"y":728},{"x":970,"y":680},{"x":380,"y":220,"h":3}],"score":938,"two":778,"three":918,"robust":1,"extra":0},{"id":25,"ok":true,"sol":[{"x":775,"y":429,"h":8},{"x":227,"y":367,"h":8},{"x":680,"y":783,"h":3}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":26,"ok":true,"sol":[{"x":548,"y":640,"h":11},{"x":1284,"y":728,"h":11},{"x":575,"y":749,"h":2}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":27,"ok":true,"sol":[{"x":240,"y":220},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":28,"ok":true,"sol":[{"x":1270,"y":530},{"x":138,"y":522,"h":4},{"x":1400,"y":400,"h":9}],"score":880,"two":720,"three":860,"robust":1,"extra":0},{"id":29,"ok":true,"sol":[{"x":1389,"y":749,"h":0},{"x":500,"y":660,"h":2},{"x":1120,"y":680,"h":1}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":30,"ok":true,"sol":[{"x":527,"y":524,"h":0},{"x":1120,"y":680,"h":1},{"x":670,"y":380,"h":5}],"score":848,"two":688,"three":828,"robust":1,"extra":0},{"id":31,"ok":true,"sol":[{"x":926,"y":425,"h":7},{"x":316,"y":648,"h":2},{"x":1432,"y":740,"h":10},{"x":944,"y":491,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":32,"ok":true,"sol":[{"x":953,"y":415,"h":1},{"x":1422,"y":410,"h":7},{"x":620,"y":740,"h":11}],"score":824,"two":664,"three":804,"robust":1,"extra":0},{"id":33,"ok":true,"sol":[{"x":138,"y":768,"h":2},{"x":70,"y":740,"h":3},{"x":380,"y":220,"h":3}],"score":882,"two":722,"three":862,"robust":1,"extra":0},{"id":34,"ok":true,"sol":[{"x":1156,"y":718,"h":11},{"x":1408,"y":695,"h":7},{"x":510,"y":630,"h":5},{"x":1170,"y":630,"h":0}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":35,"ok":true,"sol":[{"x":1196,"y":745,"h":8},{"x":1423,"y":610,"h":2},{"x":474,"y":628,"h":1},{"x":180,"y":410,"h":4}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":36,"ok":true,"sol":[{"x":730,"y":740,"h":0},{"x":290,"y":410,"h":7},{"x":730,"y":740,"h":3}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":37,"ok":true,"sol":[{"x":1120,"y":680},{"x":1120,"y":680,"h":3},{"x":380,"y":220,"h":3}],"score":923,"two":763,"three":903,"robust":1,"extra":0},{"id":38,"ok":true,"sol":[{"x":1280,"y":520,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":39,"ok":true,"sol":[{"x":270,"y":510,"h":1},{"x":596,"y":695,"h":10},{"x":770,"y":510,"h":2}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":40,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":41,"ok":true,"sol":[{"x":670,"y":710,"h":2},{"x":1070,"y":710,"h":1},{"x":270,"y":410,"h":2},{"x":770,"y":710,"h":1}],"score":741,"two":581,"three":721,"robust":1,"extra":0},{"id":42,"ok":true,"sol":[{"x":1400,"y":700},{"x":1310,"y":700,"h":9},{"x":380,"y":220,"h":3}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":43,"ok":true,"sol":[{"x":1354,"y":616,"h":1},{"x":950,"y":740,"h":0},{"x":400,"y":740,"h":2},{"x":466,"y":638,"h":9}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":44,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":45,"ok":true,"sol":[{"x":1230,"y":700},{"x":1080,"y":790,"h":1},{"x":970,"y":490,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":46,"ok":true,"sol":[{"x":884,"y":584,"h":8},{"x":883,"y":698,"h":5},{"x":740,"y":134,"h":3},{"x":1212,"y":562,"h":9}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":47,"ok":true,"sol":[{"x":390,"y":502},{"x":70,"y":490,"h":3},{"x":600,"y":510,"h":3}],"score":866,"two":706,"three":846,"robust":1,"extra":0},{"id":48,"ok":true,"sol":[{"x":275,"y":660,"h":11},{"x":654,"y":264,"h":7},{"x":1490,"y":540,"h":11},{"x":650,"y":680,"h":10}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":49,"ok":true,"sol":[{"x":538,"y":657,"h":3},{"x":1019,"y":238,"h":1},{"x":1487,"y":251,"h":2}],"score":853,"two":693,"three":833,"robust":0.1111111111111111,"extra":0},{"id":50,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":11,"ok":true,"sol":[{"x":510,"y":715,"h":11},{"x":676,"y":561,"h":2},{"x":1012,"y":641,"h":3},{"x":1486,"y":578,"h":10}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":12,"ok":true,"sol":[{"x":790,"y":400,"h":10},{"x":370,"y":540,"h":10},{"x":370,"y":540,"h":10}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":13,"ok":true,"sol":[{"x":120,"y":200,"h":12},{"x":120,"y":300,"h":12},{"x":120,"y":400,"h":12}],"score":876,"two":716,"three":856,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":21,"ok":true,"sol":[{"x":909,"y":245,"h":7},{"x":1170,"y":650,"h":11}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":22,"ok":true,"sol":[{"x":355,"y":436,"h":3},{"x":520,"y":680,"h":1},{"x":520,"y":530,"h":10}],"score":819,"two":659,"three":799,"robust":1,"extra":0},{"id":23,"ok":true,"sol":[{"x":984,"y":605,"h":8},{"x":970,"y":530,"h":1},{"x":207,"y":470,"h":1}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":24,"ok":true,"sol":[{"x":1420,"y":728},{"x":970,"y":680},{"x":380,"y":220,"h":3}],"score":938,"two":778,"three":918,"robust":1,"extra":0},{"id":25,"ok":true,"sol":[{"x":775,"y":429,"h":8},{"x":227,"y":367,"h":8},{"x":680,"y":783,"h":3}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":26,"ok":true,"sol":[{"x":548,"y":640,"h":11},{"x":1284,"y":728,"h":11},{"x":575,"y":749,"h":2}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":27,"ok":true,"sol":[{"x":240,"y":220},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":28,"ok":true,"sol":[{"x":1270,"y":530},{"x":138,"y":522,"h":4},{"x":1400,"y":400,"h":9}],"score":880,"two":720,"three":860,"robust":1,"extra":0},{"id":29,"ok":true,"sol":[{"x":1389,"y":749,"h":0},{"x":500,"y":660,"h":2},{"x":1120,"y":680,"h":1}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":30,"ok":true,"sol":[{"x":527,"y":524,"h":0},{"x":1120,"y":680,"h":1},{"x":670,"y":380,"h":5}],"score":848,"two":688,"three":828,"robust":1,"extra":0},{"id":31,"ok":true,"sol":[{"x":926,"y":425,"h":7},{"x":316,"y":648,"h":2},{"x":1432,"y":740,"h":10},{"x":944,"y":491,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":32,"ok":true,"sol":[{"x":953,"y":415,"h":1},{"x":1422,"y":410,"h":7},{"x":620,"y":740,"h":11}],"score":824,"two":664,"three":804,"robust":1,"extra":0},{"id":33,"ok":true,"sol":[{"x":138,"y":768,"h":2},{"x":70,"y":740,"h":3},{"x":380,"y":220,"h":3}],"score":882,"two":722,"three":862,"robust":1,"extra":0},{"id":34,"ok":true,"sol":[{"x":1156,"y":718,"h":11},{"x":1408,"y":695,"h":7},{"x":510,"y":630,"h":5},{"x":1170,"y":630,"h":0}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":35,"ok":true,"sol":[{"x":1196,"y":745,"h":8},{"x":1423,"y":610,"h":2},{"x":474,"y":628,"h":1},{"x":180,"y":410,"h":4}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":36,"ok":true,"sol":[{"x":730,"y":740,"h":0},{"x":290,"y":410,"h":7},{"x":730,"y":740,"h":3}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":37,"ok":true,"sol":[{"x":1120,"y":680},{"x":1120,"y":680,"h":3},{"x":380,"y":220,"h":3}],"score":923,"two":763,"three":903,"robust":1,"extra":0},{"id":38,"ok":true,"sol":[{"x":1280,"y":520,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":39,"ok":true,"sol":[{"x":270,"y":510,"h":1},{"x":596,"y":695,"h":10},{"x":770,"y":510,"h":2}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":40,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":41,"ok":true,"sol":[{"x":670,"y":710,"h":2},{"x":1070,"y":710,"h":1},{"x":270,"y":410,"h":2},{"x":770,"y":710,"h":1}],"score":741,"two":581,"three":721,"robust":1,"extra":0},{"id":42,"ok":true,"sol":[{"x":1400,"y":700},{"x":1310,"y":700,"h":9},{"x":380,"y":220,"h":3}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":43,"ok":true,"sol":[{"x":1354,"y":616,"h":1},{"x":950,"y":740,"h":0},{"x":400,"y":740,"h":2},{"x":466,"y":638,"h":9}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":44,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":45,"ok":true,"sol":[{"x":1230,"y":700},{"x":1080,"y":790,"h":1},{"x":970,"y":490,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":46,"ok":true,"sol":[{"x":884,"y":584,"h":8},{"x":883,"y":698,"h":5},{"x":740,"y":134,"h":3},{"x":1212,"y":562,"h":9}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":47,"ok":true,"sol":[{"x":390,"y":502},{"x":70,"y":490,"h":3},{"x":600,"y":510,"h":3}],"score":866,"two":706,"three":846,"robust":1,"extra":0},{"id":48,"ok":true,"sol":[{"x":275,"y":660,"h":11},{"x":654,"y":264,"h":7},{"x":1490,"y":540,"h":11},{"x":650,"y":680,"h":10}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":49,"ok":true,"sol":[{"x":538,"y":657,"h":3},{"x":1019,"y":238,"h":1},{"x":1487,"y":251,"h":2}],"score":853,"two":693,"three":833,"robust":0.1111111111111111,"extra":0},{"id":50,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":51,"ok":true,"sol":[{"x":230,"y":400,"h":4},{"x":930,"y":400,"h":3},{"x":1140,"y":365,"h":5}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":52,"ok":true,"sol":[{"x":230,"y":470,"h":1},{"x":790,"y":540,"h":0}],"score":893,"two":733,"three":873,"robust":1,"extra":0},{"id":53,"ok":true,"sol":[{"x":370,"y":680,"h":1},{"x":1412,"y":218,"h":10}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":54,"ok":true,"sol":[{"x":790,"y":680,"h":3},{"x":300,"y":400,"h":4},{"x":510,"y":540,"h":1}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":55,"ok":true,"sol":[{"x":440,"y":645,"h":2},{"x":1407,"y":680,"h":2}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":56,"ok":true,"sol":[{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":57,"ok":true,"sol":[{"x":585,"y":626,"h":10},{"x":300,"y":505,"h":2}],"score":887,"two":727,"three":867,"robust":1,"extra":0},{"id":58,"ok":true,"sol":[{"x":563,"y":663,"h":10},{"x":1060,"y":774,"h":1},{"x":1328,"y":572,"h":4}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":59,"ok":true,"sol":[{"x":1070,"y":680,"h":11},{"x":545,"y":540,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":60,"ok":true,"sol":[{"x":1070,"y":400,"h":5},{"x":930,"y":400,"h":2},{"x":930,"y":400,"h":4}],"score":950,"two":790,"three":930,"robust":1,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i];
   if(s){ l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; }
