@@ -156,13 +156,13 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.10.1</div>
+  <div class="ver">v1.12.1</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
     <div><b id="ttStars">0</b><span>★ Stars</span></div>
     <div><b id="ttScore">0</b><span>Total Score</span></div>
-    <div><b id="ttDone">0/60</b><span>Cleared</span></div>
+    <div><b id="ttDone">0/100</b><span>Cleared</span></div>
   </div>
   <div class="row">
     <button class="btn primary" onclick="UI.play()">PLAY</button>
@@ -182,7 +182,7 @@
     <div class="seltotals">
       <div><b id="tScore">0</b><span>Total Score</span></div>
       <div><b id="tStars">0</b><span>★ Stars</span></div>
-      <div><b id="tDone">0/60</b><span>Cleared</span></div>
+      <div><b id="tDone">0/100</b><span>Cleared</span></div>
     </div>
   </div>
   <div class="levlist" id="levlist"></div>
@@ -231,7 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.10.1</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.12.1</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -815,7 +815,7 @@ LV.push({ name:'Trapdoor', ch:1, tip:"Hit the BUTTON to drop the two-flap TRAPDO
     startPerch(200), exitLedge(1400),
     R(0,660,700,40), R(900,660,700,40),
   ],
-  buttons:[ {x:360,y:636,door:0} ],
+  buttons:[ {x:280,y:386,door:0} ],
   doors:[ {x1:700,y1:660,x2:900,y2:660,trig:{k:'button'},flap:true} ],
   tools:[ T(12), T(12), T(1) ] });
 
@@ -839,8 +839,8 @@ LV.push({ name:'Crag Run', ch:1, tip:"Lots of crags and free-spinning windmills.
     R(300,460,40,100), R(760,460,40,120),
     R(0,840,1600,40),
   ],
-  windmills:[ {x:520,y:740,len:70,speed:1.0,dir:1},
-              {x:980,y:740,len:70,speed:1.0,dir:-1} ],
+  windmills:[ {x:520,y:510,len:70,speed:1.0,dir:1},
+              {x:980,y:510,len:70,speed:1.0,dir:-1} ],
   tools:[ T(12), T(12), T(1) ] });
 
 // 10 · The Hanging Deep — finale: a cog, a bouncy pad, a button trapdoor, a secret.
@@ -893,7 +893,7 @@ LV.push({ name:'Trapfall', ch:2, preFlipped:true, preFlippedReq:true, noAutoTerr
     R(1420,560,180,30),                // upper floor resumes after the trap gap
     R(1240,820,360,30),                // lower floor where the white bat lands
   ],
-  buttons:[ {x:300,y:546,door:0} ],     // on the upper floor, reachable by rolling
+  buttons:[ {x:340,y:334,door:0} ],     // on the cave roof, beside the black bat
   doors:[ {x1:1180,y1:560,x2:1420,y2:560,trig:{k:'button'},flap:true} ],
   tools:[ T(12), T(1), T(12) ] });
 
@@ -1177,8 +1177,8 @@ LV.push({ name:'The Long Dark', ch:5, preFlipped:true, noAutoTerrain:true,
   tools:[ Tosc(11,1), T(12), T(1) ] });
 
 LV.push({ name:'Heart of the Deep', ch:5, preFlipped:true, noAutoTerrain:true,
-  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
-  rects:[ ceil(), wallL(), wallR(), R(360,330,40,220), R(1200,330,40,220), R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30), R(1300,820,300,30), R(40,820,1000,30) ],
+  black:{x:200,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(1200,330,40,220), R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30), R(1300,820,300,30), R(40,820,1000,30) ],
   cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
   windmills:[ {x:1020,y:430,len:90,dir:-1} ],
   bouncy:[ R(880,620,180,28) ],
@@ -1279,13 +1279,382 @@ LV.push({ name:'The Exchange', ch:6, preFlipped:true, noAutoTerrain:true,
   windmills:[ {x:1080,y:680,len:80,dir:-1} ],
   tools:[ T(12), T(1), T(11) ] });
 
+// ===================== CHAPTER 7 · THE SUNLESS RIVER (61-80) =====================
+// Backdrop: the underground river-canyon photo. A mix of all mechanics, varied
+// layouts, solid crags. Authored flipped; exit ledges under the white bat.
+
+// 61 · River Mouth — gentle intro, two echos over a wide span.
+LV.push({ name:'River Mouth', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:480}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,520,320,22),
+    R(620,420,44,200) ],
+  tools:[ T(12), T(1) ] });
+
+// 62 · The Narrows — tall converging pillars, thread the gap.
+LV.push({ name:'The Narrows', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,600,300,22),
+    R(560,330,44,300), R(1000,330,44,300) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 63 · Still Water — a bouncy pool wall lofts the ball.
+LV.push({ name:'Still Water', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,560,320,22) ],
+  bouncy:[ R(760,620,200,30) ],
+  tools:[ T(12), T(1) ] });
+
+// 64 · Undertow — a cog churns mid-river.
+LV.push({ name:'Undertow', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,560,300,22) ],
+  cogs:[ {x:780,y:640,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 65 · Sluice Gate — a trapdoor drop to the lower channel.
+LV.push({ name:'Sluice Gate', ch:7, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1080,30), R(1320,560,280,30),
+    R(1240,820,360,30), R(40,820,900,30),
+  ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1080,y1:560,x2:1320,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(12) ] });
+
+// 66 · Eddy — a free-spinning windmill mid-channel.
+LV.push({ name:'Eddy', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:500}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,540,300,22) ],
+  windmills:[ {x:760,y:520,len:100,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 67 · Twin Channels — a portal pair links two passages.
+LV.push({ name:'Twin Channels', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,600,300,22),
+    R(700,330,44,260) ],
+  portals:[ {ax:520,ay:560,bx:1040,by:440} ],
+  tools:[ T(12), T(1) ] });
+
+// 68 · Cascade — two bouncy shelves step the ball down.
+LV.push({ name:'Cascade', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,660,300,22) ],
+  bouncy:[ R(560,520,200,26), R(980,640,200,26) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 69 · Deep Pool — cog and bouncy, a lower exit.
+LV.push({ name:'Deep Pool', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:660}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,700,300,22) ],
+  cogs:[ {x:680,y:640,r:80,spin:-1,surf:300,teeth:5,tooth:32} ],
+  bouncy:[ R(1040,680,44,140) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 70 · The Siphon — a portal drops the ball to a deep channel.
+LV.push({ name:'The Siphon', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:740}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,900,30), R(1240,820,360,30), R(40,820,900,30) ],
+  portals:[ {ax:640,ay:520,bx:1340,by:700} ],
+  tools:[ T(12), T(1) ] });
+
+// 71 · Rapids — windmill plus bouncy, fast water.
+LV.push({ name:'Rapids', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22) ],
+  windmills:[ {x:620,y:540,len:90,dir:1} ],
+  bouncy:[ R(1000,640,44,140) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 72 · Stone Weir — two trapdoors in the channel floor.
+LV.push({ name:'Stone Weir', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,540,520,30), R(720,540,360,30), R(1280,540,320,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:300,y:526,door:0}, {x:900,y:526,door:1} ],
+  doors:[ {x1:520,y1:540,x2:720,y2:540,trig:{k:'button'},flap:true},
+          {x1:1080,y1:540,x2:1280,y2:540,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 73 · Plunge — flipper kicks the ball up to a high exit.
+LV.push({ name:'Plunge', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:440}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,480,320,22) ],
+  flippers:[ {x:1040,y:720,h:1} ],
+  tools:[ T(12), T(12) ] });
+
+// 74 · The Confluence — portal + cog meeting point.
+LV.push({ name:'The Confluence', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22) ],
+  cogs:[ {x:560,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  portals:[ {ax:880,ay:560,bx:1140,by:500} ],
+  tools:[ T(12), T(1) ] });
+
+// 75 · Drowned Hall — windmill + trapdoor finale-ish.
+LV.push({ name:'Drowned Hall', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,720,30), R(980,560,620,30),
+    R(1280,820,320,30), R(40,820,900,30),
+  ],
+  windmills:[ {x:440,y:440,len:90,dir:1} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:720,y1:560,x2:980,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 76 · Whirlpool — oscillating echo over a cog.
+LV.push({ name:'Whirlpool', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,560,300,22) ],
+  cogs:[ {x:760,y:640,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 77 · The Gorge — tall pillars and a bouncy floor.
+LV.push({ name:'The Gorge', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    R(520,330,44,300), R(1040,330,44,260) ],
+  bouncy:[ R(700,660,260,28) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 78 · Black Lagoon — three portals across a deep pool.
+LV.push({ name:'Black Lagoon', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,600,300,22) ],
+  portals:[ {ax:520,ay:600,bx:980,by:440}, {ax:760,ay:680,bx:300,by:460}, {ax:1100,ay:560,bx:1300,by:500} ],
+  tools:[ T(12), T(1) ] });
+
+// 79 · The Cataract — cog, windmill and a bouncy drop.
+LV.push({ name:'The Cataract', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:660}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,700,300,22) ],
+  cogs:[ {x:560,y:660,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  windmills:[ {x:980,y:520,len:90,dir:-1} ],
+  bouncy:[ R(1180,700,44,120) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 80 · Source of the River — everything: portal, windmill, trapdoor, bouncy, secret.
+LV.push({ name:'Source of the River', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(420,330,40,220),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30) ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  portals:[ {ax:300,ay:620,bx:980,by:460} ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// ===================== CHAPTER 8 · THE ROOST (81-100) — HARD =====================
+// Backdrop: the dense bat-roost wall. Tough levels: up/down crags everywhere (no
+// purely flat floors), tight mazes, lots of oscillating (moving) echos. Includes a
+// 3-cog level, a many-windmill gauntlet, and a vertical climb (black bottom->white top).
+// Crag helpers: stal = stalactite hanging from ceiling; stag = stalagmite from floor.
+const stal=(x,len,wd)=>R(x,330,wd||44,len);            // hangs from the roof
+const stag=(x,top,len,wd)=>R(x,top,wd||44,len);        // rises from a floor
+
+// 81 · Broken Teeth — alternating up/down crags, oscillating echo.
+LV.push({ name:'Broken Teeth', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22),
+    stal(420,180), stag(700,640,160), stal(900,200), stag(1140,640,150) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 82 · Sawtooth Run — a corridor of up/down crags to thread.
+LV.push({ name:'Sawtooth Run', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,560,300,22),
+    stal(360,150), stag(560,650,140), stal(760,170), stag(960,650,150), stal(1160,150) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 83 · The Three Cogs — three cogs churn across the cavern.
+LV.push({ name:'The Three Cogs', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:540}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,580,280,22),
+    stal(380,140), stal(1100,140) ],
+  cogs:[ {x:520,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32},
+         {x:820,y:640,r:90,spin:-1,surf:340,teeth:5,tooth:36},
+         {x:1120,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 84 · Pendulum Deep — oscillating echos over a chasm.
+LV.push({ name:'Pendulum Deep', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,520,460,30), R(1140,520,460,30),
+    R(1300,660,300,22), R(40,840,1520,30),
+    stal(640,260), stal(960,260) ],
+  tools:[ Tosc(10,2,2.0), Tosc(11,1,2.4), T(12) ] });
+
+// 85 · The Mill Gauntlet — a whole bank of windmills to get through.
+LV.push({ name:'The Mill Gauntlet', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:520}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1320,560,280,22) ],
+  windmills:[ {x:440,y:520,len:90,dir:1}, {x:660,y:560,len:90,dir:-1},
+              {x:880,y:520,len:90,dir:1}, {x:1100,y:560,len:90,dir:-1},
+              {x:560,y:680,len:80,dir:-1}, {x:980,y:680,len:80,dir:1} ],
+  tools:[ T(12), T(1), T(11), T(12), T(12) ] });
+
+// 86 · Stalactite Maze — dense hanging crags, oscillating echo.
+LV.push({ name:'Stalactite Maze', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22),
+    stal(360,240), stal(560,180), stal(760,260), stal(960,180), stal(1160,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 87 · The Climb — black bat BOTTOM, white TOP; many up-echos to stair-step up.
+LV.push({ name:'The Climb', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:800,y:820}, white:{x:800,y:360}, launch:{vx:0,vy:-120},
+  rects:[ ceil(), wallL(), wallR(), R(0,860,1600,40),
+    R(300,720,180,22), R(1120,720,180,22),
+    R(420,560,180,22), R(1000,560,180,22),
+    R(700,440,200,22) ],
+  // every echo aims essentially straight up (h=12); the player stacks them as a
+  // staircase. Plenty are provided so the climb is achievable.
+  tools:[ T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12) ] });
+
+// 88 · Twin Vortex — two oscillating echos and two cogs.
+LV.push({ name:'Twin Vortex', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,600,280,22),
+    stal(720,200) ],
+  cogs:[ {x:520,y:660,r:80,spin:1,surf:320,teeth:5,tooth:32},
+         {x:1080,y:660,r:80,spin:-1,surf:320,teeth:5,tooth:32} ],
+  tools:[ Tosc(11,1), Tosc(10,2), T(12) ] });
+
+// 89 · Crag Chasm — up/down crags either side of a deep trapdoor.
+LV.push({ name:'Crag Chasm', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1040,30), R(1360,560,240,30),
+    R(1240,820,360,30), R(40,820,900,30),
+    stal(420,160), stag(720,640,120) ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1040,y1:560,x2:1360,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 90 · Hanging Garden — stalactites + portal + oscillating echo.
+LV.push({ name:'Hanging Garden', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    stal(460,220), stal(880,220) ],
+  portals:[ {ax:680,ay:560,bx:1120,by:460} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 91 · The Furnace — three cogs and a windmill, tight.
+LV.push({ name:'The Furnace', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,600,280,22),
+    stal(380,150) ],
+  cogs:[ {x:560,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32},
+         {x:860,y:660,r:78,spin:-1,surf:320,teeth:5,tooth:32} ],
+  windmills:[ {x:1120,y:540,len:90,dir:1} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 92 · Deep Switchback — zigzag shelves with up/down crags.
+LV.push({ name:'Deep Switchback', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:1420,y:380}, white:{x:200,y:700}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(320,470,900,26), R(420,600,900,26), R(320,730,900,26),
+    R(40,840,1520,30), stal(700,120), stag(900,580,90) ],
+  tools:[ Tosc(11,1), T(11), T(1), T(12) ] });
+
+// 93 · Bat Bridge — narrow ledges over a void, oscillating echos.
+LV.push({ name:'Bat Bridge', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,420,26), R(620,560,360,26), R(1180,560,420,26),
+    R(1300,560,300,22), R(40,860,1520,30),
+    stal(520,160), stal(1080,160) ],
+  tools:[ Tosc(10,2), Tosc(11,1), T(12) ] });
+
+// 94 · The Throat — converging walls funnel to a cog.
+LV.push({ name:'The Throat', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,640,300,22),
+    stal(540,200), stal(1020,200) ],
+  cogs:[ {x:780,y:660,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 95 · Windmill Spiral — windmills around a central drop.
+LV.push({ name:'Windmill Spiral', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:560}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1320,600,280,22) ],
+  windmills:[ {x:480,y:500,len:90,dir:1}, {x:760,y:600,len:90,dir:-1},
+              {x:1040,y:500,len:90,dir:1}, {x:620,y:700,len:80,dir:-1},
+              {x:900,y:700,len:80,dir:1} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 96 · The Abyss — long fall, oscillating echos, trapdoor finish.
+LV.push({ name:'The Abyss', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,520,720,28), R(980,520,620,28),
+    R(1280,820,320,30), R(40,820,900,30),
+    stal(520,140), stag(1100,560,120) ],
+  buttons:[ {x:260,y:506,door:0} ],
+  doors:[ {x1:720,y1:520,x2:980,y2:520,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), Tosc(10,2), T(12) ] });
+
+// 97 · Maw of Stone — heavy up/down crags, cog + windmill.
+LV.push({ name:'Maw of Stone', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,660,280,22),
+    stal(420,200), stag(640,660,140), stal(880,220), stag(1100,660,140) ],
+  cogs:[ {x:760,y:600,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  windmills:[ {x:520,y:520,len:80,dir:1} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 98 · Roost Run — portal + oscillating echos + crags.
+LV.push({ name:'Roost Run', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    stal(520,240), stal(1040,200), stag(760,660,120) ],
+  portals:[ {ax:360,ay:600,bx:980,by:460} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 99 · The Gauntlet Deep — cogs + windmills + trapdoor, brutal.
+LV.push({ name:'The Gauntlet Deep', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,640,30), R(900,560,700,30),
+    R(1280,820,320,30), R(40,820,840,30),
+    stal(460,160) ],
+  cogs:[ {x:760,y:660,r:80,spin:1,surf:320,teeth:5,tooth:34} ],
+  windmills:[ {x:1080,y:440,len:90,dir:-1} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:640,y1:560,x2:900,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 100 · Heart of the Roost — everything, the finale.
+LV.push({ name:'Heart of the Roost', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), stal(420,200), stal(1180,200),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30), stag(900,660,120) ],
+  cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  portals:[ {ax:300,ay:620,bx:980,by:460} ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11), T(12) ] });
+
 LV.forEach((l,i)=>{ l.id=i+1; });
 return LV;
 })();
 
 
 /* ============ embedded reference solutions + thresholds ============ */
-const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":840,"y":520,"h":0},{"x":180,"y":410,"h":2},{"x":717,"y":663,"h":4}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":340,"y":390,"h":10},{"x":70,"y":390,"h":9},{"x":610,"y":660,"h":9}],"score":811,"two":651,"three":791,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":11,"ok":true,"sol":[{"x":510,"y":715,"h":11},{"x":676,"y":561,"h":2},{"x":1012,"y":641,"h":3},{"x":1486,"y":578,"h":10}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":12,"ok":true,"sol":[{"x":790,"y":400,"h":10},{"x":370,"y":540,"h":10},{"x":370,"y":540,"h":10}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":13,"ok":true,"sol":[{"x":120,"y":200,"h":12},{"x":120,"y":300,"h":12},{"x":120,"y":400,"h":12}],"score":876,"two":716,"three":856,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":21,"ok":true,"sol":[{"x":909,"y":245,"h":7},{"x":1170,"y":650,"h":11}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":22,"ok":true,"sol":[{"x":355,"y":436,"h":3},{"x":520,"y":680,"h":1},{"x":520,"y":530,"h":10}],"score":819,"two":659,"three":799,"robust":1,"extra":0},{"id":23,"ok":true,"sol":[{"x":984,"y":605,"h":8},{"x":970,"y":530,"h":1},{"x":207,"y":470,"h":1}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":24,"ok":true,"sol":[{"x":1420,"y":728},{"x":970,"y":680},{"x":380,"y":220,"h":3}],"score":938,"two":778,"three":918,"robust":1,"extra":0},{"id":25,"ok":true,"sol":[{"x":775,"y":429,"h":8},{"x":227,"y":367,"h":8},{"x":680,"y":783,"h":3}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":26,"ok":true,"sol":[{"x":548,"y":640,"h":11},{"x":1284,"y":728,"h":11},{"x":575,"y":749,"h":2}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":27,"ok":true,"sol":[{"x":240,"y":220},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":28,"ok":true,"sol":[{"x":1270,"y":530},{"x":138,"y":522,"h":4},{"x":1400,"y":400,"h":9}],"score":880,"two":720,"three":860,"robust":1,"extra":0},{"id":29,"ok":true,"sol":[{"x":1389,"y":749,"h":0},{"x":500,"y":660,"h":2},{"x":1120,"y":680,"h":1}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":30,"ok":true,"sol":[{"x":527,"y":524,"h":0},{"x":1120,"y":680,"h":1},{"x":670,"y":380,"h":5}],"score":848,"two":688,"three":828,"robust":1,"extra":0},{"id":31,"ok":true,"sol":[{"x":926,"y":425,"h":7},{"x":316,"y":648,"h":2},{"x":1432,"y":740,"h":10},{"x":944,"y":491,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":32,"ok":true,"sol":[{"x":953,"y":415,"h":1},{"x":1422,"y":410,"h":7},{"x":620,"y":740,"h":11}],"score":824,"two":664,"three":804,"robust":1,"extra":0},{"id":33,"ok":true,"sol":[{"x":138,"y":768,"h":2},{"x":70,"y":740,"h":3},{"x":380,"y":220,"h":3}],"score":882,"two":722,"three":862,"robust":1,"extra":0},{"id":34,"ok":true,"sol":[{"x":1156,"y":718,"h":11},{"x":1408,"y":695,"h":7},{"x":510,"y":630,"h":5},{"x":1170,"y":630,"h":0}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":35,"ok":true,"sol":[{"x":1196,"y":745,"h":8},{"x":1423,"y":610,"h":2},{"x":474,"y":628,"h":1},{"x":180,"y":410,"h":4}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":36,"ok":true,"sol":[{"x":730,"y":740,"h":0},{"x":290,"y":410,"h":7},{"x":730,"y":740,"h":3}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":37,"ok":true,"sol":[{"x":1120,"y":680},{"x":1120,"y":680,"h":3},{"x":380,"y":220,"h":3}],"score":923,"two":763,"three":903,"robust":1,"extra":0},{"id":38,"ok":true,"sol":[{"x":1280,"y":520,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":39,"ok":true,"sol":[{"x":270,"y":510,"h":1},{"x":596,"y":695,"h":10},{"x":770,"y":510,"h":2}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":40,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":41,"ok":true,"sol":[{"x":670,"y":710,"h":2},{"x":1070,"y":710,"h":1},{"x":270,"y":410,"h":2},{"x":770,"y":710,"h":1}],"score":741,"two":581,"three":721,"robust":1,"extra":0},{"id":42,"ok":true,"sol":[{"x":1400,"y":700},{"x":1310,"y":700,"h":9},{"x":380,"y":220,"h":3}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":43,"ok":true,"sol":[{"x":1354,"y":616,"h":1},{"x":950,"y":740,"h":0},{"x":400,"y":740,"h":2},{"x":466,"y":638,"h":9}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":44,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":45,"ok":true,"sol":[{"x":1230,"y":700},{"x":1080,"y":790,"h":1},{"x":970,"y":490,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":46,"ok":true,"sol":[{"x":884,"y":584,"h":8},{"x":883,"y":698,"h":5},{"x":740,"y":134,"h":3},{"x":1212,"y":562,"h":9}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":47,"ok":true,"sol":[{"x":390,"y":502},{"x":70,"y":490,"h":3},{"x":600,"y":510,"h":3}],"score":866,"two":706,"three":846,"robust":1,"extra":0},{"id":48,"ok":true,"sol":[{"x":275,"y":660,"h":11},{"x":654,"y":264,"h":7},{"x":1490,"y":540,"h":11},{"x":650,"y":680,"h":10}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":49,"ok":true,"sol":[{"x":538,"y":657,"h":3},{"x":1019,"y":238,"h":1},{"x":1487,"y":251,"h":2}],"score":853,"two":693,"three":833,"robust":0.1111111111111111,"extra":0},{"id":50,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":51,"ok":true,"sol":[{"x":230,"y":400,"h":4},{"x":930,"y":400,"h":3},{"x":1140,"y":365,"h":5}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":52,"ok":true,"sol":[{"x":230,"y":470,"h":1},{"x":790,"y":540,"h":0}],"score":893,"two":733,"three":873,"robust":1,"extra":0},{"id":53,"ok":true,"sol":[{"x":370,"y":680,"h":1},{"x":1412,"y":218,"h":10}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":54,"ok":true,"sol":[{"x":790,"y":680,"h":3},{"x":300,"y":400,"h":4},{"x":510,"y":540,"h":1}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":55,"ok":true,"sol":[{"x":440,"y":645,"h":2},{"x":1407,"y":680,"h":2}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":56,"ok":true,"sol":[{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":57,"ok":true,"sol":[{"x":585,"y":626,"h":10},{"x":300,"y":505,"h":2}],"score":887,"two":727,"three":867,"robust":1,"extra":0},{"id":58,"ok":true,"sol":[{"x":563,"y":663,"h":10},{"x":1060,"y":774,"h":1},{"x":1328,"y":572,"h":4}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":59,"ok":true,"sol":[{"x":1070,"y":680,"h":11},{"x":545,"y":540,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":60,"ok":true,"sol":[{"x":1070,"y":400,"h":5},{"x":930,"y":400,"h":2},{"x":930,"y":400,"h":4}],"score":950,"two":790,"three":930,"robust":1,"extra":0}];
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":430,"y":455,"h":4},{"x":895,"y":610,"h":0},{"x":265,"y":435,"h":5}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":370,"y":540,"h":8},{"x":580,"y":435,"h":2},{"x":1070,"y":400,"h":1}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":11,"ok":true,"sol":[{"x":510,"y":715,"h":11},{"x":676,"y":561,"h":2},{"x":1012,"y":641,"h":3},{"x":1486,"y":578,"h":10}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":12,"ok":true,"sol":[{"x":790,"y":400,"h":10},{"x":370,"y":540,"h":10},{"x":370,"y":540,"h":10}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":13,"ok":true,"sol":[{"x":160,"y":540,"h":2},{"x":475,"y":540,"h":9},{"x":230,"y":400,"h":5}],"score":841,"two":681,"three":821,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":21,"ok":true,"sol":[{"x":909,"y":245,"h":7},{"x":1170,"y":650,"h":11}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":22,"ok":true,"sol":[{"x":355,"y":436,"h":3},{"x":520,"y":680,"h":1},{"x":520,"y":530,"h":10}],"score":819,"two":659,"three":799,"robust":1,"extra":0},{"id":23,"ok":true,"sol":[{"x":984,"y":605,"h":8},{"x":970,"y":530,"h":1},{"x":207,"y":470,"h":1}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":24,"ok":true,"sol":[{"x":1420,"y":728},{"x":970,"y":680},{"x":380,"y":220,"h":3}],"score":938,"two":778,"three":918,"robust":1,"extra":0},{"id":25,"ok":true,"sol":[{"x":775,"y":429,"h":8},{"x":227,"y":367,"h":8},{"x":680,"y":783,"h":3}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":26,"ok":true,"sol":[{"x":548,"y":640,"h":11},{"x":1284,"y":728,"h":11},{"x":575,"y":749,"h":2}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":27,"ok":true,"sol":[{"x":240,"y":220},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":28,"ok":true,"sol":[{"x":1270,"y":530},{"x":138,"y":522,"h":4},{"x":1400,"y":400,"h":9}],"score":880,"two":720,"three":860,"robust":1,"extra":0},{"id":29,"ok":true,"sol":[{"x":1389,"y":749,"h":0},{"x":500,"y":660,"h":2},{"x":1120,"y":680,"h":1}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":30,"ok":true,"sol":[{"x":527,"y":524,"h":0},{"x":1120,"y":680,"h":1},{"x":670,"y":380,"h":5}],"score":848,"two":688,"three":828,"robust":1,"extra":0},{"id":31,"ok":true,"sol":[{"x":926,"y":425,"h":7},{"x":316,"y":648,"h":2},{"x":1432,"y":740,"h":10},{"x":944,"y":491,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":32,"ok":true,"sol":[{"x":953,"y":415,"h":1},{"x":1422,"y":410,"h":7},{"x":620,"y":740,"h":11}],"score":824,"two":664,"three":804,"robust":1,"extra":0},{"id":33,"ok":true,"sol":[{"x":138,"y":768,"h":2},{"x":70,"y":740,"h":3},{"x":380,"y":220,"h":3}],"score":882,"two":722,"three":862,"robust":1,"extra":0},{"id":34,"ok":true,"sol":[{"x":1156,"y":718,"h":11},{"x":1408,"y":695,"h":7},{"x":510,"y":630,"h":5},{"x":1170,"y":630,"h":0}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":35,"ok":true,"sol":[{"x":1196,"y":745,"h":8},{"x":1423,"y":610,"h":2},{"x":474,"y":628,"h":1},{"x":180,"y":410,"h":4}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":36,"ok":true,"sol":[{"x":730,"y":740,"h":0},{"x":290,"y":410,"h":7},{"x":730,"y":740,"h":3}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":37,"ok":true,"sol":[{"x":1120,"y":680},{"x":1120,"y":680,"h":3},{"x":380,"y":220,"h":3}],"score":923,"two":763,"three":903,"robust":1,"extra":0},{"id":38,"ok":true,"sol":[{"x":1280,"y":520,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":39,"ok":true,"sol":[{"x":270,"y":510,"h":1},{"x":596,"y":695,"h":10},{"x":770,"y":510,"h":2}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":40,"ok":true,"sol":[{"x":970,"y":530},{"x":1270,"y":728,"h":2},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":876,"two":716,"three":856,"robust":0.8333333333333334,"extra":0},{"id":41,"ok":true,"sol":[{"x":670,"y":710,"h":2},{"x":1070,"y":710,"h":1},{"x":270,"y":410,"h":2},{"x":770,"y":710,"h":1}],"score":741,"two":581,"three":721,"robust":1,"extra":0},{"id":42,"ok":true,"sol":[{"x":1400,"y":700},{"x":1310,"y":700,"h":9},{"x":380,"y":220,"h":3}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":43,"ok":true,"sol":[{"x":1354,"y":616,"h":1},{"x":950,"y":740,"h":0},{"x":400,"y":740,"h":2},{"x":466,"y":638,"h":9}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":44,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":45,"ok":true,"sol":[{"x":1230,"y":700},{"x":1080,"y":790,"h":1},{"x":970,"y":490,"h":3}],"score":925,"two":765,"three":905,"robust":1,"extra":0},{"id":46,"ok":true,"sol":[{"x":884,"y":584,"h":8},{"x":883,"y":698,"h":5},{"x":740,"y":134,"h":3},{"x":1212,"y":562,"h":9}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":47,"ok":true,"sol":[{"x":390,"y":502},{"x":70,"y":490,"h":3},{"x":600,"y":510,"h":3}],"score":866,"two":706,"three":846,"robust":1,"extra":0},{"id":48,"ok":true,"sol":[{"x":275,"y":660,"h":11},{"x":654,"y":264,"h":7},{"x":1490,"y":540,"h":11},{"x":650,"y":680,"h":10}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":49,"ok":true,"sol":[{"x":538,"y":657,"h":3},{"x":1019,"y":238,"h":1},{"x":1487,"y":251,"h":2}],"score":853,"two":693,"three":833,"robust":0.1111111111111111,"extra":0},{"id":50,"ok":true,"sol":[{"x":314,"y":690,"h":8},{"x":230,"y":400,"h":3},{"x":803,"y":193,"h":0},{"x":1090,"y":225,"h":1},{"x":1350,"y":680,"h":3}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":51,"ok":true,"sol":[{"x":230,"y":400,"h":4},{"x":930,"y":400,"h":3},{"x":1140,"y":365,"h":5}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":52,"ok":true,"sol":[{"x":230,"y":470,"h":1},{"x":790,"y":540,"h":0}],"score":893,"two":733,"three":873,"robust":1,"extra":0},{"id":53,"ok":true,"sol":[{"x":370,"y":680,"h":1},{"x":1412,"y":218,"h":10}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":54,"ok":true,"sol":[{"x":790,"y":680,"h":3},{"x":300,"y":400,"h":4},{"x":510,"y":540,"h":1}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":55,"ok":true,"sol":[{"x":440,"y":645,"h":2},{"x":1407,"y":680,"h":2}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":56,"ok":true,"sol":[{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":57,"ok":true,"sol":[{"x":585,"y":626,"h":10},{"x":300,"y":505,"h":2}],"score":887,"two":727,"three":867,"robust":1,"extra":0},{"id":58,"ok":true,"sol":[{"x":563,"y":663,"h":10},{"x":1060,"y":774,"h":1},{"x":1328,"y":572,"h":4}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":59,"ok":true,"sol":[{"x":1070,"y":680,"h":11},{"x":545,"y":540,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":60,"ok":true,"sol":[{"x":1070,"y":400,"h":5},{"x":930,"y":400,"h":2},{"x":930,"y":400,"h":4}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":61,"ok":true,"sol":[{"x":930,"y":680,"h":0},{"x":265,"y":470,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":62,"ok":true,"sol":[{"x":580,"y":680,"h":3},{"x":1037,"y":680,"h":0},{"x":370,"y":540,"h":2}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":63,"ok":true,"sol":[{"x":230,"y":400,"h":2},{"x":755,"y":610,"h":2}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":64,"ok":true,"sol":[{"x":1210,"y":680,"h":0},{"x":335,"y":750,"h":2},{"x":1274,"y":766,"h":10}],"score":852,"two":692,"three":832,"robust":1,"extra":0},{"id":65,"ok":true,"sol":[{"x":895,"y":540,"h":1},{"x":370,"y":540,"h":5},{"x":1070,"y":540,"h":3}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":66,"ok":true,"sol":[{"x":230,"y":400,"h":1},{"x":1210,"y":400,"h":3},{"x":790,"y":400,"h":7}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":67,"ok":true,"sol":[{"x":370,"y":645,"h":1},{"x":1265,"y":569,"h":9}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":68,"ok":true,"sol":[{"x":230,"y":400,"h":2},{"x":790,"y":400,"h":4},{"x":1341,"y":139,"h":9}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":69,"ok":true,"sol":[{"x":415,"y":666,"h":11},{"x":265,"y":540,"h":1},{"x":790,"y":365,"h":1}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":70,"ok":true,"sol":[{"x":230,"y":400,"h":3},{"x":1349,"y":350,"h":0}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":71,"ok":true,"sol":[{"x":393,"y":273,"h":2},{"x":405,"y":610,"h":0},{"x":965,"y":540,"h":1}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":72,"ok":true,"sol":[{"x":230,"y":400,"h":3},{"x":370,"y":435,"h":1},{"x":1339,"y":137,"h":11}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":73,"ok":true,"sol":[{"x":1000,"y":575,"h":3},{"x":230,"y":400,"h":3}],"score":883,"two":723,"three":863,"robust":1,"extra":0},{"id":74,"ok":true,"sol":[{"x":481,"y":763,"h":11},{"x":510,"y":540,"h":4}],"score":863,"two":703,"three":843,"robust":1,"extra":0},{"id":75,"ok":true,"sol":[{"x":790,"y":540,"h":5},{"x":1000,"y":610,"h":2},{"x":370,"y":540,"h":2}],"score":829,"two":669,"three":809,"robust":1,"extra":0},{"id":76,"ok":true,"sol":[{"x":532,"y":745,"h":0},{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":77,"ok":true,"sol":[{"x":1210,"y":680,"h":0},{"x":1070,"y":680,"h":2},{"x":1495,"y":360,"h":4}],"score":934,"two":774,"three":914,"robust":1,"extra":0},{"id":78,"ok":true,"sol":[{"x":370,"y":540,"h":2},{"x":230,"y":400,"h":5}],"score":893,"two":733,"three":873,"robust":1,"extra":0},{"id":79,"ok":true,"sol":[{"x":300,"y":470,"h":0},{"x":755,"y":435,"h":1},{"x":510,"y":400,"h":1}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":80,"ok":true,"sol":[{"x":1000,"y":575,"h":2},{"x":790,"y":400,"h":4},{"x":945,"y":502,"h":3},{"x":1315,"y":680,"h":5}],"score":942,"two":782,"three":922,"robust":1,"extra":0},{"id":81,"ok":true,"sol":[{"x":560,"y":699,"h":8},{"x":930,"y":680,"h":1},{"x":790,"y":540,"h":5}],"score":871,"two":711,"three":851,"robust":0.2222222222222222,"extra":0},{"id":82,"ok":true,"sol":[{"x":464,"y":632,"h":5},{"x":719,"y":467,"h":4},{"x":930,"y":680,"h":0},{"x":545,"y":575,"h":5}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":83,"ok":true,"sol":[{"x":487,"y":584,"h":3},{"x":510,"y":540,"h":1},{"x":510,"y":540,"h":1},{"x":230,"y":400,"h":5}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":84,"ok":true,"sol":[{"x":536,"y":529,"h":10},{"x":1053,"y":520,"h":5},{"x":930,"y":680,"h":3}],"score":839,"two":679,"three":819,"robust":0.1111111111111111,"extra":0},{"id":85,"ok":true,"sol":[{"x":370,"y":680,"h":2},{"x":1140,"y":435,"h":3},{"x":370,"y":540,"h":0},{"x":790,"y":400,"h":1},{"x":930,"y":400,"h":2}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":86,"ok":true,"sol":[{"x":367,"y":277,"h":3},{"x":1210,"y":680,"h":0},{"x":984,"y":763,"h":0},{"x":1210,"y":540,"h":4}],"score":868,"two":708,"three":848,"robust":1,"extra":0},{"id":87,"ok":true,"sol":[{"x":216,"y":139,"h":11},{"x":353,"y":633,"h":3},{"x":456,"y":640,"h":5},{"x":659,"y":489,"h":11},{"x":793,"y":836,"h":11},{"x":921,"y":638,"h":8},{"x":1068,"y":238,"h":5},{"x":1174,"y":399,"h":7},{"x":1338,"y":341,"h":4},{"x":1495,"y":555,"h":11}],"score":944,"two":784,"three":924,"robust":1,"extra":0},{"id":88,"ok":true,"sol":[{"x":404,"y":559,"h":11},{"x":1002,"y":505,"h":4},{"x":790,"y":680,"h":11}],"score":833,"two":673,"three":813,"robust":0.2222222222222222,"extra":0},{"id":89,"ok":true,"sol":[{"x":475,"y":470,"h":1},{"x":1031,"y":461,"h":11},{"x":1372,"y":502,"h":3}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":90,"ok":true,"sol":[{"x":510,"y":680,"h":7},{"x":370,"y":680,"h":1},{"x":1396,"y":612,"h":5}],"score":887,"two":727,"three":867,"robust":1,"extra":0},{"id":91,"ok":true,"sol":[{"x":425,"y":645,"h":2},{"x":650,"y":470,"h":1},{"x":860,"y":400,"h":1},{"x":510,"y":400,"h":4}],"score":878,"two":718,"three":858,"robust":0.8888888888888888,"extra":0},{"id":92,"ok":true,"sol":[{"x":930,"y":540,"h":11},{"x":1245,"y":505,"h":8},{"x":1350,"y":540,"h":9},{"x":650,"y":540,"h":8}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":93,"ok":true,"sol":[{"x":339,"y":588,"h":5},{"x":510,"y":540,"h":10},{"x":1494,"y":561,"h":4}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":94,"ok":true,"sol":[{"x":444,"y":716,"h":3},{"x":510,"y":575,"h":4},{"x":1070,"y":540,"h":2},{"x":1391,"y":419,"h":1}],"score":878,"two":718,"three":858,"robust":0.3333333333333333,"extra":0},{"id":95,"ok":true,"sol":[{"x":230,"y":400,"h":0},{"x":510,"y":400,"h":7},{"x":1210,"y":400,"h":5},{"x":1526,"y":435,"h":0}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":96,"ok":true,"sol":[{"x":357,"y":392,"h":9},{"x":1065,"y":834,"h":8},{"x":930,"y":540,"h":9}],"score":734,"two":574,"three":714,"robust":0.3333333333333333,"extra":0},{"id":97,"ok":true,"sol":[{"x":1000,"y":610,"h":11},{"x":510,"y":680,"h":2},{"x":510,"y":680,"h":3},{"x":930,"y":540,"h":1}],"score":856,"two":696,"three":836,"robust":0.1111111111111111,"extra":0},{"id":98,"ok":true,"sol":[{"x":1210,"y":680,"h":4},{"x":1350,"y":540,"h":5},{"x":1070,"y":680,"h":2},{"x":1210,"y":680,"h":2}],"score":935,"two":775,"three":915,"robust":0.2222222222222222,"extra":0},{"id":99,"ok":true,"sol":[{"x":467,"y":595,"h":9},{"x":965,"y":610,"h":1},{"x":230,"y":400,"h":9},{"x":510,"y":540,"h":0}],"score":860,"two":700,"three":840,"robust":0.2222222222222222,"extra":0},{"id":100,"ok":true,"sol":[{"x":1070,"y":540,"h":8},{"x":825,"y":470,"h":7},{"x":864,"y":417,"h":11},{"x":1140,"y":610,"h":2},{"x":1460,"y":267,"h":2}],"score":908,"two":748,"three":888,"robust":0.5555555555555556,"extra":0}];
 /* merge thresholds onto levels */
 LEVELS.forEach((l,i)=>{ const s=SOLVED[i];
   if(s){ l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; }
@@ -1325,9 +1694,23 @@ function resize(){
   const w=window.innerWidth,h=window.innerHeight;
   cv.width=w*dpr; cv.height=h*dpr; cv.style.width=w+'px'; cv.style.height=h+'px';
   VIEW.dpr = dpr; VIEW.W = w; VIEW.H = h;
-  const s = Math.min(w/BP.W, h/BP.H); VIEW.s = s;
+  // Scale so the full WIDTH fits; the active play band (top of cave down through the
+  // bats and obstacles) is then centred vertically. The dead floor area below the
+  // action is allowed to clip off the bottom so the playfield sits centred rather
+  // than pinned high with a big empty ceiling band. Purely visual — world coords
+  // and physics are unchanged.
+  const sW = w/BP.W, sH = h/BP.H;
+  // use width fit, but don't let the visible world get shorter than the screen band
+  let s = sW;
+  VIEW.s = s;
   VIEW.ox = (w - BP.W*s)/2;
-  VIEW.oy = (h - BP.H*s)/2;
+  const CONTENT_MID = 600;            // mid of the active play band (world units)
+  VIEW.oy = (h/2) - CONTENT_MID*s;
+  // clamp: keep the top of the world (ceiling) at/above the screen top, and don't
+  // pull so far up that we reveal empty space beyond the world bottom.
+  if(VIEW.oy > 0) VIEW.oy = 0;
+  const minOy = h - BP.H*s;
+  if(s >= sH && VIEW.oy < minOy) VIEW.oy = minOy;
   // landscape-only: show a rotate prompt when the device is portrait
   const portrait = h > w;
   const rp=document.getElementById('rotate');
@@ -1441,6 +1824,90 @@ const Render=(()=>{
     }
     ctx.restore(); ctx.globalAlpha=1;
   }
+  // Scene D: a smooth banded underground canyon converging to a dark passage, with
+  // a green-tinted water pool reflecting at the bottom (from the river-cave photo).
+  function backdropRiverCanyon(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    const cx=x0+w*0.52, vanish=y0+h*0.52;        // passage vanishing point
+    // converging canyon walls (left and right), smooth banded rock
+    for(const side of [-1,1]){
+      const baseX = cx + side*w*0.05;
+      const g=ctx.createLinearGradient(x0+(side<0?0:w), y0, cx, vanish);
+      g.addColorStop(0, P.rock[0]); g.addColorStop(1, '#0a0e16');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.moveTo(side<0?x0:x0+w, y0);
+      ctx.lineTo(side<0?x0:x0+w, y0+h*0.7);
+      ctx.lineTo(baseX, vanish);
+      ctx.lineTo(cx, vanish-20);
+      ctx.closePath(); ctx.fill();
+      // horizontal sediment bands sweeping toward the vanishing point
+      ctx.strokeStyle=P.rim; ctx.globalAlpha=0.10; ctx.lineWidth=2*VIEW.s;
+      for(let b=0;b<7;b++){
+        const ty=y0+h*(0.30+b*0.07);
+        ctx.beginPath(); ctx.moveTo(side<0?x0:x0+w, ty);
+        ctx.quadraticCurveTo(cx+side*w*0.16, vanish+10, cx, vanish-6); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+    }
+    // dark passage at the vanishing point
+    const pg=ctx.createRadialGradient(cx,vanish,4,cx,vanish,w*0.12);
+    pg.addColorStop(0,'#04060c'); pg.addColorStop(1,'#04060c00');
+    ctx.fillStyle=pg; ctx.beginPath(); ctx.ellipse(cx,vanish,w*0.10,h*0.12,0,0,7); ctx.fill();
+    // green water pool across the lower third with soft ripples + reflection glow
+    const waterTop=y0+h*0.66;
+    const wg=ctx.createLinearGradient(0,waterTop,0,y0+h);
+    wg.addColorStop(0,'#1f5a4e55'); wg.addColorStop(0.4,'#2f7d6633'); wg.addColorStop(1,'#0c241e88');
+    ctx.fillStyle=wg; ctx.fillRect(x0,waterTop,w,h-(waterTop-y0));
+    // a brighter reflected pool of light near the centre
+    const rg2=ctx.createRadialGradient(cx,waterTop+h*0.08,6,cx,waterTop+h*0.08,w*0.22);
+    rg2.addColorStop(0,'#7fe6b033'); rg2.addColorStop(1,'#7fe6b000');
+    ctx.fillStyle=rg2; ctx.fillRect(x0,waterTop,w,h-(waterTop-y0));
+    // ripple lines
+    ctx.strokeStyle='#bff3dd'; ctx.globalAlpha=0.10; ctx.lineWidth=1.4*VIEW.s;
+    const t=performance.now()/1400;
+    for(let i=0;i<5;i++){ const ry=waterTop+h*(0.06+i*0.05); const ph=Math.sin(t+i)*6*VIEW.s;
+      ctx.beginPath(); ctx.moveTo(x0,ry+ph); ctx.quadraticCurveTo(cx,ry-8*VIEW.s+ph,x0+w,ry+ph); ctx.stroke(); }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+  // Scene E: a warm-lit sloping cave wall densely covered with hanging bat
+  // silhouettes (the roost photo). A diagonal ledge crack splits the wall.
+  function backdropBatRoost(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    // warm wash + a soft lamp glow from upper-left
+    const lg=ctx.createRadialGradient(x0+w*0.36,y0+h*0.42,8,x0+w*0.36,y0+h*0.42,w*0.5);
+    lg.addColorStop(0, P.rim+'30'); lg.addColorStop(1, P.rim+'00');
+    ctx.fillStyle=lg; ctx.fillRect(x0,y0,w,h);
+    // diagonal crack/ledge across the wall
+    const cy0=y0+h*0.34, cy1=y0+h*0.58;
+    ctx.strokeStyle='#04060a'; ctx.globalAlpha=0.6; ctx.lineWidth=4*VIEW.s;
+    ctx.beginPath(); ctx.moveTo(x0,cy0);
+    for(let i=0;i<=8;i++){ const fx=x0+w*i/8; const fy=cy0+(cy1-cy0)*i/8+(rhb(i*4.2)-0.5)*16*VIEW.s; ctx.lineTo(fx,fy);} 
+    ctx.stroke(); ctx.globalAlpha=1;
+    // dense field of little hanging-bat silhouettes on the upper wall
+    ctx.fillStyle='#0b0d14';
+    const rows=7, cols=18;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const jx=(rhb(r*31+c)-0.5)*0.6, jy=(rhb(r*7+c*3)-0.5)*0.4;
+      const bx=x0+w*((c+0.5+jx)/cols);
+      const by=y0+h*(0.06+(r+0.5+jy)*0.045);
+      // skip below the crack line so bats stay on the upper roost
+      const crackY=cy0+(cy1-cy0)*((bx-x0)/w);
+      if(by>crackY-6*VIEW.s) continue;
+      ctx.globalAlpha=0.45+0.4*rhb(r*5+c*2);
+      const s=(3+rhb(r+c)*3)*VIEW.s;
+      // teardrop body
+      ctx.beginPath(); ctx.ellipse(bx,by,s*0.6,s*1.3,0,0,7); ctx.fill();
+      // a faint pale highlight on one (a lit bat, like the photo)
+      if(r===3 && c===4){ ctx.globalAlpha=0.7; ctx.fillStyle='#d8d2c4';
+        ctx.beginPath(); ctx.ellipse(bx,by,s*0.7,s*1.4,0,0,7); ctx.fill(); ctx.fillStyle='#0b0d14'; }
+    }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
   function bg(){
     const P=pal();
     const AW = VIEW.W, AH = VIEW.H;
@@ -1452,12 +1919,15 @@ const Render=(()=>{
     g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
     ctx.fillStyle=g;
     ctx.fillRect(p.x, top.y, BP.W*VIEW.s, botY-top.y);
-    // stylised backdrop scene (decorative only) — cycles by chapter
-    const scene=((Render._ch||1)-1)%3;
+    // stylised backdrop scene (decorative only)
+    const ch=(Render._ch||1);
     const bx=p.x, by=top.y, bw=BP.W*VIEW.s, bh=botY-top.y;
-    if(scene===0) backdropStalactites(bx,by,bw,bh,P);
-    else if(scene===1) backdropCaveMouth(bx,by,bw,bh,P);
-    else backdropLightShafts(bx,by,bw,bh,P);
+    if(ch===7) backdropRiverCanyon(bx,by,bw,bh,P);
+    else if(ch===8) backdropBatRoost(bx,by,bw,bh,P);
+    else { const scene=(ch-1)%3;
+      if(scene===0) backdropStalactites(bx,by,bw,bh,P);
+      else if(scene===1) backdropCaveMouth(bx,by,bw,bh,P);
+      else backdropLightShafts(bx,by,bw,bh,P); }
     // sun/moon glow pool behind
     const cx=toScreen(BP.W/2,BP.H*0.74);
     const rg=ctx.createRadialGradient(cx.x,cx.y,10,cx.x,cx.y,560*VIEW.s);
@@ -2025,7 +2495,7 @@ const Game=(()=>{
     document.getElementById('result').classList.remove('on');
     document.getElementById('scoreNum').textContent='999';
     rebuild(); }
-  function next(){ const id=L.id+1; if(id<=100 && (viewer||Store.unlocked(id))) loadLevel(id,viewer); else UI.quitToSelect(); }
+  function next(){ const id=L.id+1; if(id<=LEVELS.length && (viewer||Store.unlocked(id))) loadLevel(id,viewer); else UI.quitToSelect(); }
 
   function starsForScore(s){ if(s>=L.three)return 3; if(s>=L.two)return 2; return 1; }
 
@@ -2050,10 +2520,13 @@ const Game=(()=>{
       document.getElementById('rScore').innerHTML='';
       document.getElementById('rHint').textContent='Reposition your echo(s) and try again.';
     }
-    const nextBtn=document.getElementById('rNext');
-    const canNext = L.id<100 && (viewer || (won&&stars>=1) || Store.unlocked(L.id+1));
-    nextBtn.style.display=canNext?'inline-block':'none';
     if(won && !viewer){ Store.record(L.id,stars,sc, placements.map(p=>({x:Math.round(p.x),y:Math.round(p.y),h:p.h}))); UI.refreshTitle(); }
+    const nextBtn=document.getElementById('rNext');
+    // show NEXT only when a next level actually exists and is unlocked; on the final
+    // level there is no next, so the button is hidden (the player returns to the menu).
+    const hasNext = L.id < LEVELS.length;
+    const canNext = hasNext && (viewer || Store.unlocked(L.id+1));
+    nextBtn.style.display=canNext?'inline-block':'none';
     r.classList.add('on');
   }
 
