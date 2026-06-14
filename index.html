@@ -156,7 +156,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.8.0</div>
+  <div class="ver">v1.8.1</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -231,7 +231,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.8.0</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.8.1</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -1590,14 +1590,32 @@ const Game=(()=>{
   let pathProg=1, winAnim=0, winScore=0;
   let blackWing=0, whiteWing=0;
 
+  // Default echo layout: spread across the open width near the ceiling, but skip any
+  // slot that overlaps the black bat's launch zone (within the launch/grab radius)
+  // so echos never sit on top of the bat where they'd block tapping to release.
+  function defaultPlacements(L,nt){
+    const out=[];
+    const bx=L.black.x, by=L.black.y+26, LAUNCH=170;   // launch zone radius
+    // candidate x slots across the playable width
+    const slots=[];
+    for(let x=180;x<=1420;x+=120) slots.push(x);
+    // keep only slots clear of the launch zone (and not on the far wall edges)
+    const clear=slots.filter(x=>Math.hypot(x-bx, 345-by) > LAUNCH);
+    // prefer slots on the opposite side of the level from the black bat
+    clear.sort((a,b)=> Math.abs(b-bx) - Math.abs(a-bx));
+    for(let i=0;i<nt;i++){
+      const x = clear.length? clear[i % clear.length] + (Math.floor(i/clear.length))*40 : 700+i*120;
+      out.push({ x, y:345 });
+    }
+    return out;
+  }
   function loadLevel(id, asViewer){
     viewer=!!asViewer; resolved=false;
     L=LEVELS[id-1];
     // arrows start parked on the left, stacked vertically, NOT in solution spots
     const probe=BP.makeWorld(L,null);
     const nt=(probe.toolDefs||[]).length;
-    placements=[];
-    for(let i=0;i<nt;i++) placements.push({ x:470+i*150, y:345 });
+    placements=defaultPlacements(L,nt);
     // if the player has a saved best layout for this level, load it on entry
     if(!viewer){ const best=Store.bestPlacementFor(id); if(best&&best.length===nt) placements=best.map(p=>({x:p.x,y:p.y,h:p.h})); }
     preT=0;
@@ -1761,7 +1779,7 @@ const Game=(()=>{
   function resumeGame(){ paused=false; }
   function arrowsToDefault(){
     const nt=nTools();
-    placements=[]; for(let i=0;i<nt;i++) placements.push({ x:470+i*150, y:345 });
+    placements=defaultPlacements(L,nt);
     launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
     rebuild();
   }
