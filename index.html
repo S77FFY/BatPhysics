@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="app-repo" content="BatPhysics">
+<meta name="app-version" content="1.14.2">
 <title>Bat Physics</title>
 <style>
   :root{
@@ -156,7 +158,7 @@
 
 <!-- TITLE -->
 <div id="title" class="screen on">
-  <div class="ver">v1.14.1</div>
+  <div class="ver">v1.14.2</div>
   <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
   <div class="sub">Roll the ball through the caves</div>
   <div class="stat">
@@ -231,7 +233,7 @@
 
 <!-- rotate prompt (portrait) -->
 <div id="rotate">
-  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.14.1</div>
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.14.2</div>
   <div class="rotinner">
     <div class="roticon">⟳</div>
     <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
@@ -1799,13 +1801,26 @@ function resize(){
   if(VIEW.oy > 0) VIEW.oy = 0;
   const minOy = h - BP.H*s;
   if(s >= sH && VIEW.oy < minOy) VIEW.oy = minOy;
-  // landscape-only: show a rotate prompt when the device is portrait
-  const portrait = h > w;
+  // landscape-only: show a rotate prompt when the device is portrait.
+  // Use a media query, NOT window.orientation (undefined in an iOS standalone
+  // home-screen app) or the deprecated orientationchange event: matchMedia
+  // behaves the same in Safari and in a standalone window.
+  const portrait = window.matchMedia
+    ? window.matchMedia('(orientation: portrait)').matches
+    : (h > w);
   const rp=document.getElementById('rotate');
   if(rp) rp.style.display = portrait ? 'flex' : 'none';
 }
 window.addEventListener('resize',resize);
-window.addEventListener('orientationchange',()=>setTimeout(resize,80));
+// Orientation via matchMedia — fires reliably in Safari AND iOS standalone,
+// where orientationchange does not. Re-read after a short delay too, since iOS
+// can report stale innerWidth/innerHeight at the instant the query flips.
+if(window.matchMedia){
+  const mq=window.matchMedia('(orientation: portrait)');
+  const onOri=()=>{ resize(); setTimeout(resize,120); };
+  if(mq.addEventListener) mq.addEventListener('change',onOri);
+  else if(mq.addListener) mq.addListener(onOri);   // older Safari
+}
 
 function applyBaseTransform(){
   const dpr=VIEW.dpr;
