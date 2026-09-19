@@ -1,0 +1,2911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="app-repo" content="BatPhysics">
+<meta name="app-version" content="1.14.2">
+<title>Bat Physics</title>
+<style>
+  :root{
+    --rock:#0b0e18; --rock2:#141a2c; --stone:#1d2740;
+    --glow:#37e0c8; --glow2:#1aa89a; --amber:#ffb347; --crystal:#8a7bff;
+    --bat-w:#dff4ff; --bat-k:#0e1626; --txt:#cfe6ff; --dim:#6a7ba0;
+    --gold:#ffd34d; --bad:#ff5b6e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#05070d;
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:var(--txt);
+    -webkit-user-select:none;user-select:none;touch-action:none;}
+  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{display:block;background:#05070d;}
+
+  /* overlay screens */
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) 20px;
+    background:radial-gradient(120% 90% at 50% -10%, #16213d 0%, #0a0e1a 60%, #05070d 100%);}
+  .screen.on{display:flex;}
+  .title{font-size:clamp(40px,9vw,84px);font-weight:800;letter-spacing:2px;
+    color:var(--bat-w);text-shadow:0 0 24px var(--glow),0 0 4px #000;margin:0;}
+  .title .b{color:var(--glow);}
+  .sub{color:var(--dim);letter-spacing:3px;text-transform:uppercase;font-size:13px;margin:6px 0 26px;}
+  .stat{display:flex;gap:28px;margin-bottom:30px;}
+  .stat div{text-align:center;}
+  .stat b{display:block;font-size:30px;color:var(--gold);text-shadow:0 0 12px #ffae0066;}
+  .stat span{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+  .btn{appearance:none;border:1px solid #2c3b5e;background:linear-gradient(180deg,#1a2440,#121a30);
+    color:var(--txt);font:inherit;font-size:18px;font-weight:700;letter-spacing:1px;
+    padding:15px 40px;border-radius:14px;margin:7px;cursor:pointer;min-width:230px;
+    box-shadow:0 6px 0 #0a1020,0 8px 18px #0006;transition:transform .05s,box-shadow .05s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #0a1020;}
+  .btn.primary{border-color:var(--glow2);
+    background:linear-gradient(180deg,#14403c,#0c2724);color:#dffdf7;text-shadow:0 0 10px var(--glow);}
+  .btn.sm{min-width:0;padding:11px 20px;font-size:15px;}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;}
+
+  /* level select grid */
+  /* level select: frozen header + scrollable list */
+  #select{flex-direction:column;padding:0;}
+  #select.on{display:flex;}
+  .selhead{flex:0 0 auto;display:flex;align-items:center;gap:14px;
+    padding:max(12px,env(safe-area-inset-top)) 16px 12px;background:#070b14ee;
+    border-bottom:1px solid #1d2740;backdrop-filter:blur(6px);z-index:5;}
+  .seltotals{display:flex;gap:22px;align-items:baseline;}
+  .seltotals>div{display:flex;flex-direction:column;align-items:center;}
+  .seltotals b{font-size:22px;color:var(--gold);text-shadow:0 0 12px #ffae0044;line-height:1;}
+  .seltotals span{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:3px;}
+  .levlist{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:12px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;
+    gap:10px;width:min(720px,100%);margin:0 auto;box-sizing:border-box;}
+  .lrow{display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:14px;
+    border:1px solid #233055;background:linear-gradient(180deg,#141d36,#0d1528);cursor:pointer;}
+  .lrow:active{transform:scale(.99);}
+  .lrow.lock{opacity:.45;cursor:not-allowed;}
+  .lrow .ln{font-size:20px;font-weight:800;color:var(--bat-w);min-width:34px;text-align:center;}
+  .lrow .lmid{flex:1;display:flex;flex-direction:column;gap:3px;}
+  .lrow .lnm{font-size:15px;color:var(--txt);letter-spacing:.3px;}
+  .lrow .lbest{font-size:11px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;}
+  .lrow .lstars{font-size:15px;letter-spacing:2px;color:var(--gold);white-space:nowrap;}
+  .lrow.lock .lstars,.lrow.lock .lbest{visibility:hidden;}
+  .lrow.lock::after{content:"\1F512";font-size:16px;opacity:.7;}
+  /* white-hot stars: beat the verified reference score */
+  .lstars.hot{color:#fff;text-shadow:0 0 8px #fff,0 0 16px #9ad7ff,0 0 24px #6cf;}
+  .lrow.beat{border-color:#bfe8ff;box-shadow:0 0 14px #7fd0ff55,inset 0 0 18px #7fd0ff14;}
+
+  /* in-game HUD */
+  #hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
+    justify-content:space-between;padding:10px 14px;pointer-events:none;}
+  #hud .pill{pointer-events:auto;background:#0c1326cc;border:1px solid #243152;border-radius:12px;
+    padding:8px 12px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(4px);}
+  #scoreNum{font-size:26px;font-weight:800;color:var(--gold);min-width:74px;text-align:center;
+    text-shadow:0 0 12px #ffae0055;}
+  #lvlName{font-size:13px;letter-spacing:1px;color:var(--txt);}
+  #lvlName small{color:var(--dim);display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+  .icbtn{pointer-events:auto;width:42px;height:42px;border-radius:11px;border:1px solid #243152;
+    background:#0c1326cc;color:var(--txt);font-size:18px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;}
+  .icbtn:active{transform:scale(.93);}
+  #toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);
+    background:#0c1326e6;border:1px solid #2c3b5e;border-radius:12px;padding:10px 18px;
+    font-size:14px;letter-spacing:.5px;color:var(--txt);opacity:0;transition:opacity .25s;
+    max-width:80vw;text-align:center;pointer-events:none;}
+  #toast.on{opacity:1;}
+  /* tutorial tip card (shown on first appearance of a mechanic; dismissed on touch) */
+  #tip{position:absolute;left:50%;top:84px;transform:translateX(-50%);
+    display:none;z-index:20;pointer-events:none;max-width:74vw;}
+  #tip.on{display:block;animation:tipIn .3s ease;}
+  @keyframes tipIn{from{opacity:0;transform:translate(-50%,-8px);}to{opacity:1;transform:translateX(-50%);}}
+  .tipinner{background:#0c1326f0;border:1px solid #37e0c8;border-radius:14px;
+    padding:14px 20px;text-align:center;box-shadow:0 0 24px #37e0c844;}
+  #tipText{font-size:15px;line-height:1.4;color:var(--txt);letter-spacing:.3px;}
+  .tiphint{margin-top:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--glow);opacity:.8;}
+  #fire{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);pointer-events:auto;}
+
+  /* pause menu */
+  #pause{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:#04060bd0;backdrop-filter:blur(3px);z-index:25;}
+  #pause.on{display:flex;}
+  .pausebox{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(440px,84vw);}
+  .ptitle{margin:0 0 8px;font-size:30px;letter-spacing:6px;color:var(--gold);
+    text-shadow:0 0 16px #ffae0066;}
+  .pbtn{appearance:none;width:100%;border:1px solid #2c3b5e;
+    background:linear-gradient(180deg,#1a2440,#121a30);color:var(--txt);font:inherit;
+    font-size:19px;font-weight:700;letter-spacing:2px;padding:15px 20px;border-radius:14px;
+    cursor:pointer;box-shadow:0 5px 0 #0a1020,0 8px 16px #0006;transition:transform .05s,box-shadow .05s;}
+  .pbtn:active{transform:translateY(4px);box-shadow:0 1px 0 #0a1020;}
+  .pbtn.dim{opacity:.45;}
+
+  /* rotate prompt */
+  #rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:#05070d;z-index:60;}
+  .rotinner{text-align:center;}
+  .roticon{font-size:64px;color:var(--glow);animation:spin 2.4s linear infinite;
+    text-shadow:0 0 20px var(--glow);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .rottext{margin-top:18px;font-size:22px;font-weight:700;color:var(--txt);letter-spacing:1px;}
+  .rottext span{display:block;margin-top:8px;font-size:13px;font-weight:400;color:var(--dim);
+    letter-spacing:2px;text-transform:uppercase;}
+
+  /* result modal */
+  #result{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    background:#04060bcc;backdrop-filter:blur(3px);z-index:20;}
+  #result.on{display:flex;}
+  .card{width:min(440px,90vw);background:linear-gradient(180deg,#16213d,#0c1426);
+    border:1px solid #2c3b5e;border-radius:20px;padding:26px;text-align:center;
+    box-shadow:0 20px 60px #000a;}
+  .card h2{margin:0 0 4px;font-size:34px;letter-spacing:1px;}
+  .card h2.win{color:var(--glow);text-shadow:0 0 18px var(--glow);}
+  .card h2.lose{color:var(--bad);}
+  .stars{font-size:46px;letter-spacing:8px;margin:8px 0 2px;height:50px;}
+  .stars .f{color:var(--gold);text-shadow:0 0 14px #ffae00aa;}
+  .stars .e{color:#2a3450;}
+  .rscore{font-size:18px;color:var(--txt);margin:6px 0 18px;}
+  .rscore b{color:var(--gold);font-size:24px;}
+  .rscore .best{color:var(--dim);font-size:13px;display:block;margin-top:3px;}
+  .hint{font-size:12px;color:var(--dim);margin-top:12px;line-height:1.5;}
+
+  .tag{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:11px;
+    letter-spacing:3px;color:var(--crystal);text-transform:uppercase;}
+  .foot{position:absolute;bottom:14px;font-size:11px;color:var(--dim);letter-spacing:1px;}
+  .ver{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px;
+    font-family:'SF Mono','Consolas','Menlo','Courier New',monospace;
+    font-size:11px;letter-spacing:1px;color:var(--dim);opacity:.8;}
+  @media (max-width:520px){ .grid{grid-template-columns:repeat(4,1fr);} }
+</style>
+</head>
+<body>
+<div id="app"><canvas id="cv"></canvas></div>
+
+<!-- TITLE -->
+<div id="title" class="screen on">
+  <div class="ver">v1.14.2</div>
+  <h1 class="title"><span class="b">BAT</span> PHYSICS</h1>
+  <div class="sub">Roll the ball through the caves</div>
+  <div class="stat">
+    <div><b id="ttStars">0</b><span>★ Stars</span></div>
+    <div><b id="ttScore">0</b><span>Total Score</span></div>
+    <div><b id="ttDone">0/100</b><span>Cleared</span></div>
+  </div>
+  <div class="row">
+    <button class="btn primary" onclick="UI.play()">PLAY</button>
+  </div>
+  <div class="row">
+    <button class="btn sm" onclick="UI.showSelect()">LEVEL SELECT</button>
+    <button class="btn sm" onclick="UI.openViewer()">LEVEL VIEWER</button>
+  </div>
+  <button class="btn sm" style="margin-top:18px;opacity:.7" onclick="UI.resetAll()">Reset progress</button>
+  <div class="foot">A new cave-physics puzzle · 2026</div>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="select" class="screen">
+  <div class="selhead">
+    <button class="icbtn" onclick="UI.toTitle()">‹</button>
+    <div class="seltotals">
+      <div><b id="tScore">0</b><span>Total Score</span></div>
+      <div><b id="tStars">0</b><span>★ Stars</span></div>
+      <div><b id="tDone">0/100</b><span>Cleared</span></div>
+    </div>
+  </div>
+  <div class="levlist" id="levlist"></div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen" style="background:none">
+  <div id="hud">
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="icbtn" onclick="UI.quitToSelect()">‹</button>
+      <div class="pill"><span id="scoreNum">999</span></div>
+    </div>
+    <div class="pill" id="lvlName"></div>
+    <div style="display:flex;gap:8px">
+      <button class="icbtn" id="pauseBtn" onclick="UI.pause()" title="Pause">❚❚</button>
+      <button class="icbtn" id="fsBtn" onclick="UI.toggleFullscreen()" title="Fullscreen">⛶</button>
+      <button class="icbtn" id="viewerBadge" style="display:none" onclick="UI.viewerSolve()" title="Show solution">✦</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+  <div id="tip"><div class="tipinner"><span id="tipText"></span><div class="tiphint">tap to dismiss</div></div></div>
+  <div id="result">
+    <div class="card">
+      <h2 id="rTitle" class="win">LEVEL COMPLETE!</h2>
+      <div class="stars" id="rStars"></div>
+      <div class="rscore" id="rScore"></div>
+      <div class="row">
+        <button class="btn sm" onclick="Game.retry()">RETRY</button>
+        <button class="btn sm" id="rNext" onclick="Game.next()">NEXT ›</button>
+      </div>
+      <div class="row"><button class="btn sm" style="opacity:.7" onclick="UI.quitToSelect()">LEVELS</button></div>
+      <div class="hint" id="rHint"></div>
+    </div>
+  </div>
+  <div id="pause">
+    <div class="pausebox">
+      <h2 class="ptitle">– PAUSED –</h2>
+      <button class="pbtn" onclick="UI.resume()">RESUME GAME</button>
+      <button class="pbtn" onclick="UI.arrowsDefault()">ECHOS TO DEFAULT</button>
+      <button class="pbtn" id="pbBest" onclick="UI.arrowsBest()">ECHOS TO MY BEST</button>
+      <button class="pbtn" onclick="UI.quitToSelect()">QUIT</button>
+    </div>
+  </div>
+  <div class="tag" id="viewerTag" style="display:none">VIEWER MODE</div>
+</div>
+
+<!-- rotate prompt (portrait) -->
+<div id="rotate">
+  <div class="ver" style="position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:14px">v1.14.2</div>
+  <div class="rotinner">
+    <div class="roticon">⟳</div>
+    <div class="rottext">Please rotate your device<br><span>Bat Physics plays in landscape</span></div>
+  </div>
+</div>
+
+<script>
+/* ============ embedded verified engine ============ */
+// ============ BAT PHYSICS — core engine (environment-agnostic) ============
+'use strict';
+const BP = (() => {
+
+const W = 1600, H = 900;
+const DT = 1 / 120;
+const GRAV = 1500;
+const BALLR = 14;
+const SEG_TH = 7;            // half-thickness of segment colliders
+const ARROW_SPEED = 880;
+const ECHO_BOOST = 1180;     // exit speed when accelerating through an echo
+const ECHO_DECAY = 1400;     // px/s^2 the boost bleeds off back toward normal
+const ARROW_R = 57;
+const FLIP_SPEED = 860;
+const FLIP_R = 78;
+const FLIP_CD = 0.9;
+const PORTAL_R = 30;
+const WIN_R = 46;
+const MAXV = 1600;
+const TIME_CAP = 45;
+const STALL_T = 1.1;
+const SCORE_DIV = 12;
+
+// clock hour -> unit direction (12 = up, 3 = right, 6 = down, 9 = left)
+function hourDir(h) {
+  const a = h * Math.PI / 6;
+  return { x: Math.sin(a), y: -Math.cos(a) };
+}
+
+// ---------- geometry ----------
+function closestOnSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const L2 = dx * dx + dy * dy;
+  let t = L2 === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return { x: x1 + t * dx, y: y1 + t * dy };
+}
+function closestOnRect(px, py, r) {
+  return { x: Math.max(r[0], Math.min(px, r[0] + r[2])),
+           y: Math.max(r[1], Math.min(py, r[1] + r[3])) };
+}
+
+// ---------- moving floor (wave of vertical rods) ----------
+// A band of `n` vertical rods. Rod k rises by 0..maxRise following a travelling
+// wave: level = (k - t*speedRods) wrapped over `wavelen` rods, mapped 0..1..0.
+// rodTop(k,t) returns the screen-y of the top of rod k (smaller y = higher).
+function waveRise(wf, k, t) {
+  const wavelen = wf.wavelen || 10;
+  // phase advances one rod per (1/ wf.rodsPerSec) seconds; default 10 rods/sec so
+  // the whole 10-rod pattern marches one rod every 0.1s (visibly a flowing wave).
+  const rodsPerSec = wf.rodsPerSec || 10;
+  let ph = ((k - t * rodsPerSec) % wavelen + wavelen) % wavelen; // 0..wavelen
+  // triangle 0->max->0 across the wavelength gives a clean up/down wave
+  const tri = ph < wavelen / 2 ? (ph / (wavelen / 2)) : (2 - ph / (wavelen / 2));
+  return (wf.maxRise || 90) * tri;     // 0..maxRise pixels of rise
+}
+
+// ---------- vertical flip + recenter ----------
+// Flip the whole level about y=450 (so floor->ceiling, bats hang down), then
+// shift down so the playable band sits just above screen-center. Gravity is
+// unchanged (still +y), so the ball falls away from the hanging bats.
+const FLIP_SHIFT = 300;
+function fy(y){ return (900 - y) + FLIP_SHIFT; }     // flip about 450, then shift down
+function flipRect(r){ // [x,y,w,h] -> flip top edge becomes bottom
+  return [r[0], fy(r[1] + r[3]), r[2], r[3]];
+}
+function flipLevel(level){
+  if (level._flipped) return level._flipped;
+  // Hand-authored levels already in flipped screen-space: use as-is (no transform,
+  // no auto-terrain). The ball still spawns below the hanging bat (set in makeWorld).
+  if (level.preFlipped) { level._flipped = level; return level; }
+  const L = JSON.parse(JSON.stringify(level));
+  L.black = { x: level.black.x, y: fy(level.black.y) };
+  L.white = { x: level.white.x, y: fy(level.white.y) };
+  if (level.launch) L.launch = { vx: level.launch.vx, vy: -(level.launch.vy||0) };
+  L.rects = (level.rects||[]).map(flipRect);
+  // Auto-terrain: the flip leaves open space below the hanging bats. Add a set of
+  // staggered ledges/crags there so the falling ball has surfaces to land/roll on,
+  // making the arc puzzles solvable. Levels can opt out with noAutoTerrain, or
+  // add their own via level.crags (already-flipped coords) — but default gives a
+  // gentle "cave floor" landscape under the action.
+  if (!level.noAutoTerrain) {
+    const baseY = 560;   // main catch-floor a bit below bat level (~406)
+    // short landing ledges directly under each bat (at the ball's spawn/win height)
+    // so a ball arriving near bat level can settle and roll in, like the original floor.
+    const by = level.black.y, wy = level.white.y;   // pre-flip y
+    const bfx = level.black.x, wfx = level.white.x;
+    L.rects.push([bfx-150, fy(by)+30, 300, 22]);
+    L.rects.push([wfx-150, fy(wy)+30, 300, 22]);
+    // a broken, rocky main ledge with gaps lower down
+    L.rects.push([60, baseY, 360, 30]);
+    L.rects.push([520, baseY+60, 380, 30]);
+    L.rects.push([1000, baseY, 360, 30]);
+    L.rects.push([1420, baseY+50, 140, 30]);
+    // hanging crags from the ceiling platform (stubby stalactites)
+    L.rects.push([520, 380, 40, 130]);
+    L.rects.push([960, 380, 40, 150]);
+    // lower crags rising from deeper floor
+    L.rects.push([700, baseY+150, 40, 120]);
+    L.rects.push([1120, baseY+150, 40, 120]);
+  }
+  L.segs = (level.segs||[]).map(s => [s[0], fy(s[1]), s[2], fy(s[3])]);
+  L.doors = (level.doors||[]).map(d => ({ ...d, y1: fy(d.y1), y2: fy(d.y2) }));
+  L.buttons = (level.buttons||[]).map(b => ({ ...b, y: fy(b.y) }));
+  L.flippers = (level.flippers||[]).map(f => ({ ...f, y: fy(f.y), h: (12 - f.h) % 12 }));
+  L.portals = (level.portals||[]).map(p => ({ ...p, ay: fy(p.ay), by: fy(p.by) }));
+  L.bouncy = (level.bouncy||[]).map(flipRect);
+  L.cogs = (level.cogs||[]).map(c => ({ ...c, y: fy(c.y), spin: -(c.spin||1) }));
+  L.windmills = (level.windmills||[]).map(m => ({ ...m, y: fy(m.y), dir: -(m.dir||1) }));
+  // tools keep their angles but flipped vertically: hour h -> (12 - h) % 12
+  const flipH = h => ((12 - h) % 12 + 12) % 12;
+  if (level.tools) L.tools = level.tools.map(t => t.t==='osc'
+    ? { t:'osc', h1:flipH(t.h1), h2:flipH(t.h2), period:t.period }
+    : { t:'fix', h:flipH(t.h) });
+  if (level.arrows) L.arrows = level.arrows.map(a => ({ ...a, h:flipH(a.h), y: fy(a.y) }));
+  if (level.osc) L.osc = level.osc.map(a => ({ ...a, h1:flipH(a.h1), h2:flipH(a.h2), y: fy(a.y) }));
+  if (level.drag) L.drag = level.drag.map(a => ({ ...a, h:flipH(a.h), y: fy(a.y) }));
+  if (level.extraEchos) L.extraEchos = level.extraEchos; // count of solver-added echos
+  L.id = level.id; L.name = level.name; L.ch = level.ch;
+  level._flipped = L;
+  return L;
+}
+
+// ---------- world instantiation ----------
+// placements: array of {x,y} overriding drag-arrow positions (player or solution)
+function makeWorld(level0, placements) {
+  const level = flipLevel(level0);
+  const w = {
+    lvl: level,
+    t: 0,
+    p: { x: level.black.x, y: level.black.y + 26 },
+    v: { x: level.launch ? level.launch.vx : 260, y: level.launch ? level.launch.vy : 0 },
+    path: 0,
+    pts: [{ x: level.black.x, y: level.black.y + 26 }],
+    won: false, fail: null, done: false,
+    spin: 0, boost: 0,
+    stall: 0,
+    arrows: [],          // unified arrow runtime list
+    doorOpen: (level.doors || []).map(() => false),
+    doorTimer: (level.doors || []).map(() => -1),
+    flipCd: (level.flippers || []).map(() => 0),
+    flipAnim: (level.flippers || []).map(() => 0),
+    portalCd: (level.portals || []).map(() => 0),
+    warpN: (level.portals || []).map(() => 0),
+    btnDown: (level.buttons || []).map(() => false),
+    wmAng: (level.windmills || []).map(m => m.ang0 || 0),   // current blade angle
+    wmVel: (level.windmills || []).map(() => 0),            // angular velocity (free-spin)
+    events: [],          // for renderer: {t, kind, i}
+  };
+  // Unified arrow model: every arrow is positioned by the player (placements[]).
+  // Tools come from level.tools, or are assembled from legacy arrays (arrows/osc/drag).
+  // All are draggable; oscillators sweep continuously off absolute time.
+  let tools = level.tools;
+  if (!tools) {
+    tools = [];
+    (level.arrows || []).forEach(a => tools.push({ t: 'fix', h: a.h }));
+    (level.osc || []).forEach(a => tools.push({ t: 'osc', h1: a.h1, h2: a.h2, period: a.period || 2.4 }));
+    (level.drag || []).forEach(a => tools.push({ t: 'fix', h: a.h }));
+  } else {
+    tools = tools.slice();
+  }
+  // extra echos added by the solver to make flipped levels completable
+  const extra = level0.extraEchos || level.extraEchos || 0;
+  for (let i = 0; i < extra; i++) tools.push({ t: 'fix', h: 3 });
+  w.toolDefs = tools;
+  tools.forEach((a, i) => {
+    const pl = (placements && placements[i]) ? placements[i] : { x: 470 + i * 150, y: 345 };
+    if (a.t === 'osc') {
+      w.arrows.push({ x: pl.x, y: pl.y, h: a.h1, h1: a.h1, h2: a.h2,
+                      period: a.period || 2.4, kind: 'osc', armed: true, di: i });
+    } else {
+      // angle may be overridden by the placement (pl.h) — used by the solver and
+      // by the flip system, since flipped levels need freshly-chosen angles.
+      const h = (pl.h != null) ? pl.h : a.h;
+      w.arrows.push({ x: pl.x, y: pl.y, h, kind: 'fix', armed: true, di: i });
+    }
+  });
+  return w;
+}
+
+function arrowAngleHour(a, t) {
+  if (a.kind !== 'osc') return a.h;
+  // ping-pong between h1 and h2, always sweeping the short way (e.g. 12 -> 2 goes through 1)
+  let h2 = a.h2; if (h2 < a.h1) h2 += 12;
+  const span = h2 - a.h1;
+  const ph = (t % (a.period * 2)) / a.period;       // 0..2
+  const k = ph < 1 ? ph : 2 - ph;                    // 0..1..0
+  return a.h1 + span * k;
+}
+
+// ---------- one physics step ----------
+function step(w) {
+  if (w.done) return;
+  const L = w.lvl;
+  w.t += w.DTscale ? DT * w.DTscale : DT;
+
+  // gravity + integrate
+  w.v.y += GRAV * DT;
+  const sp0 = Math.hypot(w.v.x, w.v.y);
+  if (sp0 > MAXV) { w.v.x *= MAXV / sp0; w.v.y *= MAXV / sp0; }
+  const ox = w.p.x, oy = w.p.y;
+  w.p.x += w.v.x * DT;
+  w.p.y += w.v.y * DT;
+
+  // collisions (few iterations for stability)
+  for (let it = 0; it < 3; it++) {
+    let hit = false;
+    const collide = (cp, half) => {
+      let dx = w.p.x - cp.x, dy = w.p.y - cp.y;
+      let d = Math.hypot(dx, dy);
+      const min = BALLR + half;
+      if (d >= min) return false;
+      let nx, ny;
+      if (d < 1e-6) { nx = 0; ny = -1; d = 0; } else { nx = dx / d; ny = dy / d; }
+      w.p.x += nx * (min - d);
+      w.p.y += ny * (min - d);
+      const vn = w.v.x * nx + w.v.y * ny;
+      if (vn < 0) {
+        const e = (-vn < 90) ? 0 : 0.5;
+        w.v.x -= (1 + e) * vn * nx;
+        w.v.y -= (1 + e) * vn * ny;
+        // tangential friction
+        const tn = w.v.x * nx + w.v.y * ny;
+        let tx = w.v.x - tn * nx, ty = w.v.y - tn * ny;
+        tx *= 0.998; ty *= 0.998;
+        w.v.x = tn * nx + tx; w.v.y = tn * ny + ty;
+      }
+      return true;
+    };
+    for (const r of (L.rects || [])) {
+      const cp = closestOnRect(w.p.x, w.p.y, r);
+      if (collide(cp, 0)) hit = true;
+    }
+    // moving floor: a band of vertical rods rising/falling as a travelling wave.
+    // The ball rests on the rod tops; a rod moving UP imparts upward velocity, so
+    // catching the wave at the right spot flings the ball along/up like a swell.
+    for (const wf of (L.wavefloor || [])) {
+      const n = wf.n || 50;
+      const rodW = wf.w / n;
+      if (w.p.x > wf.x - BALLR && w.p.x < wf.x + wf.w + BALLR) {
+        const k = Math.floor((w.p.x - wf.x) / rodW);
+        for (let kk = Math.max(0, k - 1); kk <= Math.min(n - 1, k + 1); kk++) {
+          const rise = waveRise(wf, kk, w.t);
+          const top = wf.y - rise;                 // current top of this rod (screen-y)
+          const rx = wf.x + kk * rodW;
+          // horizontal overlap with this rod column?
+          if (w.p.x + BALLR < rx || w.p.x - BALLR > rx + rodW) continue;
+          // collide with the rod's TOP edge if the ball is at/under it
+          if (w.p.y + BALLR > top && w.p.y < top + 40) {
+            // rod's vertical surface speed (px/s): d(rise)/dt, +up
+            const riseNext = waveRise(wf, kk, w.t + DT);
+            const rodVy = -(riseNext - rise) / DT;   // screen-y velocity of the top (neg=up)
+            w.p.y = top - BALLR;                     // sit on top
+            if (w.v.y > rodVy) {
+              // bounce/transfer: take the rod's upward motion; gentle restitution
+              const e = 0.25;
+              const rel = w.v.y - rodVy;
+              w.v.y = rodVy - e * rel;
+              // a rising rod adds extra launch impulse (the 'sweet spot' kick)
+              if (rodVy < 0) w.v.y += rodVy * 0.6;
+            }
+            hit = true;
+          }
+        }
+      }
+    }
+    // gate bars: a solid vertical bar that slides up and down. It blocks the path
+    // (a gap above toward the roof, a gap below toward a hole), and catching its
+    // TOP as it rises launches the ball upward.
+    for (const g of (L.gatebars || [])) {
+      const span = (g.yBot - g.yTop);
+      const ph = Math.sin((w.t / (g.period || 2.4)) * Math.PI * 2) * 0.5 + 0.5; // 0..1
+      const barTop = g.yTop + span * ph;                 // current top of the bar
+      const barRect = [g.x, barTop, g.w, g.h || 200];
+      const cp = closestOnRect(w.p.x, w.p.y, barRect);
+      let dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
+      if (d < BALLR) {
+        let nx, ny; if (d < 1e-6) { nx = 0; ny = -1; } else { nx = dx / d; ny = dy / d; }
+        w.p.x += nx * (BALLR - d); w.p.y += ny * (BALLR - d);
+        const vn = w.v.x * nx + w.v.y * ny;
+        if (vn < 0) { const e = 0.3; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+        // bar vertical speed (screen-y, neg = up)
+        const phN = Math.sin(((w.t + DT) / (g.period || 2.4)) * Math.PI * 2) * 0.5 + 0.5;
+        const barVy = (g.yTop + span * phN - barTop) / DT;
+        // if hit on top while the bar rises, launch the ball up with the bar
+        if (ny < -0.3 && barVy < 0) { w.v.y += barVy * 1.4; }
+        hit = true;
+      }
+    }
+    // bouncy walls: rects that reflect the ball with high restitution
+    for (const r of (L.bouncy || [])) {
+      const cp = closestOnRect(w.p.x, w.p.y, r);
+      let dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
+      if (d < BALLR) {
+        let nx, ny; if (d < 1e-6) { nx = 0; ny = -1; } else { nx = dx / d; ny = dy / d; }
+        w.p.x += nx * (BALLR - d); w.p.y += ny * (BALLR - d);
+        const vn = w.v.x * nx + w.v.y * ny;
+        if (vn < 0) { const e = 1.15; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny;
+          w.events.push({ t: w.t, kind: 'bounce', x: cp.x, y: cp.y }); }
+        hit = true;
+      }
+    }
+    // cogs: a hub disc (radius r) with a few BIG teeth and WIDE gaps. The ball
+    // rests against the body and nestles into a gap; the rotating teeth carry it
+    // around. A tooth sweeping into the ball from behind pushes it tangentially.
+    (L.cogs || []).forEach((c, ci) => {
+      const dx = w.p.x - c.x, dy = w.p.y - c.y; const d = Math.hypot(dx, dy);
+      const tooth = (c.tooth != null ? c.tooth : 30);    // tooth length beyond body
+      const nteeth = c.teeth || 5;                         // few teeth -> wide gaps
+      const spin = c.spin || 1;
+      const surf = (c.surf != null ? c.surf : 320);
+      const cogAng = w.t * (surf / Math.max(40, c.r)) * spin;   // body angular pos
+      // 1) collide with the hub body (ball rolls on the rim, sits in gaps)
+      if (d < BALLR + c.r && d > 1e-6) {
+        const nx = dx / d, ny = dy / d;
+        w.p.x += nx * (BALLR + c.r - d); w.p.y += ny * (BALLR + c.r - d);
+        const vn = w.v.x * nx + w.v.y * ny;
+        if (vn < 0) { const e = 0.18; w.v.x -= (1 + e) * vn * nx; w.v.y -= (1 + e) * vn * ny; }
+        // gentle carry: nudge tangential velocity toward rim speed
+        const tx = -ny * spin, ty = nx * spin;
+        const curT = w.v.x * tx + w.v.y * ty;
+        const dT = (surf - curT) * 0.18;
+        w.v.x += tx * dT; w.v.y += ty * dT;
+        hit = true;
+      }
+      // 2) teeth: thin radial pegs that bat the ball if one sweeps into it
+      for (let k = 0; k < nteeth; k++) {
+        const a2 = cogAng + k * (Math.PI * 2 / nteeth);
+        const tipx = c.x + Math.cos(a2) * (c.r + tooth);
+        const tipy = c.y + Math.sin(a2) * (c.r + tooth);
+        const basx = c.x + Math.cos(a2) * c.r;
+        const basy = c.y + Math.sin(a2) * c.r;
+        const cp = closestOnSeg(w.p.x, w.p.y, basx, basy, tipx, tipy);
+        const ddx = w.p.x - cp.x, ddy = w.p.y - cp.y, dd = Math.hypot(ddx, ddy);
+        if (dd < BALLR + SEG_TH && dd > 1e-6) {
+          const nx = ddx / dd, ny = ddy / dd;
+          w.p.x += nx * (BALLR + SEG_TH - dd); w.p.y += ny * (BALLR + SEG_TH - dd);
+          const rr = Math.hypot(cp.x - c.x, cp.y - c.y) || 1;
+          const tx = -(cp.y - c.y) / rr * spin, ty = (cp.x - c.x) / rr * spin;
+          const tangSpeed = surf;
+          w.v.x += tx * tangSpeed * DT * 4.0; w.v.y += ty * tangSpeed * DT * 4.0;
+          hit = true;
+        }
+      }
+    });
+    // windmills: FREE-SPINNING rotors. Static until the ball pushes a blade, then
+    // they spin up from that impulse, carry angular momentum, and fling the ball.
+    (L.windmills || []).forEach((m, mi) => {
+      const ang = w.wmAng[mi];
+      let bestHit = null;
+      for (let k = 0; k < 4; k++) {
+        const a2 = ang + k * Math.PI / 2;
+        const ex = m.x + Math.cos(a2) * m.len, ey = m.y + Math.sin(a2) * m.len;
+        const cp = closestOnSeg(w.p.x, w.p.y, m.x, m.y, ex, ey);
+        const dx = w.p.x - cp.x, dy = w.p.y - cp.y, d = Math.hypot(dx, dy);
+        if (d < BALLR + SEG_TH && d > 1e-6) { bestHit = { cp, dx, dy, d }; break; }
+      }
+      if (bestHit) {
+        const { cp, dx, dy, d } = bestHit;
+        const nx = dx / d, ny = dy / d;
+        w.p.x += nx * (BALLR + SEG_TH - d); w.p.y += ny * (BALLR + SEG_TH - d);
+        // lever arm from hub to contact
+        const rvx = cp.x - m.x, rvy = cp.y - m.y;
+        const rr = Math.hypot(rvx, rvy) || 1;
+        // blade tangential direction at contact (for current rotation sign)
+        const tx = -rvy / rr, ty = rvx / rr;
+        // current blade surface velocity at contact
+        const bladeSpeed = w.wmVel[mi] * rr;
+        const bvx = tx * bladeSpeed, bvy = ty * bladeSpeed;
+        // relative velocity of ball vs blade along the normal
+        const rel = (w.v.x - bvx) * nx + (w.v.y - bvy) * ny;
+        if (rel < 0) {
+          const e = 0.45;
+          w.v.x -= (1 + e) * rel * nx; w.v.y -= (1 + e) * rel * ny;
+          // ball pushes the rotor: torque from the normal impulse component
+          const torque = (nx * tx + ny * ty);   // how aligned the push is with spin
+          const push = -rel;                     // magnitude of the inward hit
+          w.wmVel[mi] += torque * push / rr * 0.9;
+        }
+        // the spinning blade also flings the ball along its tangential motion
+        w.v.x += bvx * DT * 6.0; w.v.y += bvy * DT * 6.0;
+        w.events.push({ t: w.t, kind: 'windmill', i: mi });
+        hit = true;
+      }
+    });
+    for (const s of (L.segs || [])) {
+      const cp = closestOnSeg(w.p.x, w.p.y, s[0], s[1], s[2], s[3]);
+      if (collide(cp, SEG_TH)) hit = true;
+    }
+    (L.doors || []).forEach((d, i) => {
+      if (w.doorOpen[i]) return;
+      const cp = closestOnSeg(w.p.x, w.p.y, d.x1, d.y1, d.x2, d.y2);
+      const dd = Math.hypot(w.p.x - cp.x, w.p.y - cp.y);
+      if (dd < BALLR + SEG_TH) {
+        if (collide(cp, SEG_TH)) hit = true;
+        // touch-trigger doors start their countdown on contact
+        if (d.trig.k === 'touch' && w.doorTimer[i] < 0) {
+          w.doorTimer[i] = d.trig.delay != null ? d.trig.delay : 0.38;
+          w.events.push({ t: w.t, kind: 'doorArm', i });
+        }
+      }
+    });
+    if (!hit) break;
+  }
+
+  // buttons -> open linked doors
+  (L.buttons || []).forEach((b, i) => {
+    const dx = w.p.x - b.x, dy = w.p.y - b.y;
+    if (Math.hypot(dx, dy) < BALLR + 24 && !w.btnDown[i]) {
+      w.btnDown[i] = true;
+      if (!w.doorOpen[b.door]) { w.doorOpen[b.door] = true; w.events.push({ t: w.t, kind: 'doorOpen', i: b.door }); }
+    }
+  });
+
+  // timed / touch door countdowns
+  (L.doors || []).forEach((d, i) => {
+    if (w.doorOpen[i]) return;
+    if (d.trig.k === 'timed' && w.t >= d.trig.t) { w.doorOpen[i] = true; w.events.push({ t: w.t, kind: 'doorOpen', i }); }
+    if (d.trig.k === 'touch' && w.doorTimer[i] >= 0) {
+      w.doorTimer[i] -= DT;
+      if (w.doorTimer[i] <= 0) { w.doorOpen[i] = true; w.events.push({ t: w.t, kind: 'doorOpen', i }); }
+    }
+  });
+
+  // echos: SINGLE-USE deflector. The echo points in an aim direction (its 0deg
+  // point). The ball is "sucked in" and slung OUT along the aim, but the exit is
+  // blended with which SIDE of the aim axis the ball entered: entering left of an
+  // up-pointing echo slings it up-AND-right; entering right slings it up-and-left.
+  // This lets an up echo move the ball sideways. Boost on exit, then decays.
+  for (const a of w.arrows) {
+    if (a.spent) continue;
+    const d = Math.hypot(w.p.x - a.x, w.p.y - a.y);
+    if (d < ARROW_R + BALLR) {
+      const dir = hourDir(arrowAngleHour(a, w.t));        // aim (unit)
+      // perpendicular (right-hand) to the aim
+      const px = -dir.y, py = dir.x;
+      // signed offset of the ENTRY point from the aim axis: which side did it enter?
+      const rx = w.p.x - a.x, ry = w.p.y - a.y;
+      let side = (rx * px + ry * py) / ARROW_R;           // ~[-1..1], + = right side
+      side = Math.max(-1, Math.min(1, side));
+      // also factor the incoming travel direction so a ball moving across the echo
+      // keeps some of that momentum's sense (feels like being slung, not snapped).
+      const sp0 = Math.hypot(w.v.x, w.v.y) || 1;
+      const inx = w.v.x / sp0, iny = w.v.y / sp0;
+      const inSide = inx * px + iny * py;                 // incoming lateral sense
+      // blend: exit aim curved toward the side opposite the entry offset.
+      // entering on the LEFT (side<0) curves exit toward +right (-side*perp).
+      const curve = (-side * 0.85) + (inSide * 0.25);     // tangential strength
+      let ex = dir.x + px * curve;
+      let ey = dir.y + py * curve;
+      const el = Math.hypot(ex, ey) || 1; ex /= el; ey /= el;
+      w.v.x = ex * ECHO_BOOST;
+      w.v.y = ey * ECHO_BOOST;
+      w.boost = 1;
+      a.spent = true;              // single-use
+      w.events.push({ t: w.t, kind: 'arrow', x: a.x, y: a.y });
+    }
+  }
+  // boost decay: while boosted and above normal launch speed, bleed speed off
+  // smoothly so the ball returns to a gravity-normal pace after exiting.
+  if (w.boost > 0) {
+    const sp = Math.hypot(w.v.x, w.v.y);
+    if (sp > ARROW_SPEED) {
+      const ns = Math.max(ARROW_SPEED, sp - ECHO_DECAY * DT);
+      w.v.x *= ns / sp; w.v.y *= ns / sp;
+    } else { w.boost = 0; }
+  }
+
+  // free-spinning windmills: advance blade angle by angular velocity, decay slowly
+  (L.windmills || []).forEach((m, mi) => {
+    w.wmAng[mi] += w.wmVel[mi] * DT;
+    // angular drag (free spin slowly winds down)
+    w.wmVel[mi] *= (1 - 1.1 * DT);
+    if (Math.abs(w.wmVel[mi]) < 0.02) w.wmVel[mi] = 0;
+    // clamp to avoid runaway
+    if (w.wmVel[mi] > 14) w.wmVel[mi] = 14;
+    if (w.wmVel[mi] < -14) w.wmVel[mi] = -14;
+  });
+
+  // flippers (auto-fire, once per attempt)
+  (L.flippers || []).forEach((f, i) => {
+    w.flipAnim[i] = Math.max(0, w.flipAnim[i] - DT * 4);
+    const d = Math.hypot(w.p.x - f.x, w.p.y - f.y);
+    if (d < FLIP_R && w.flipCd[i] <= 0) {
+      w.flipCd[i] = 1e9;  // fired — stays spent until retry
+      const dir = hourDir(f.h);
+      w.v.x = dir.x * FLIP_SPEED;
+      w.v.y = dir.y * FLIP_SPEED;
+      w.flipAnim[i] = 1;
+      w.events.push({ t: w.t, kind: 'flip', i });
+    }
+  });
+
+  // portals
+  let warped = false;
+  (L.portals || []).forEach((pt, i) => {
+    if (w.portalCd[i] > 0) {
+      const dOut = Math.hypot(w.p.x - pt.bx, w.p.y - pt.by);
+      if (dOut > PORTAL_R + 16) w.portalCd[i] = 0;
+      return;
+    }
+    const d = Math.hypot(w.p.x - pt.ax, w.p.y - pt.ay);
+    if (d < PORTAL_R) {
+      w.p.x = pt.bx; w.p.y = pt.by;
+      w.portalCd[i] = 1;
+      w.warpN[i]++;
+      warped = true;
+      if (w.warpN[i] > 4) { w.fail = 'lost'; w.done = true; }
+      w.events.push({ t: w.t, kind: 'warp', i });
+      w.pts.push(null);                 // break the trail
+      w.pts.push({ x: w.p.x, y: w.p.y });
+    }
+  });
+
+  // path accumulation — a portal teleport jumps the ball instantly, so that
+  // inter-portal distance must NOT count toward the path length / score.
+  const seg = warped ? 0 : Math.hypot(w.p.x - ox, w.p.y - oy);
+  w.path += seg;
+  // ball spin: rolling proportional to distance travelled, signed by horizontal direction
+  w.spin += (seg / BALLR) * (w.v.x >= 0 ? 1 : -1);
+  const last = w.pts[w.pts.length - 1];
+  if (!last || Math.hypot(w.p.x - last.x, w.p.y - last.y) > 18) w.pts.push({ x: w.p.x, y: w.p.y });
+
+  // win: catch if any part of the ball overlaps any part of the hanging white bat.
+  // The bat spans vertically ~white.y-16 (body at ceiling) to ~white.y+54 (ear tips),
+  // ~24px half-width. Test ball-vs-rounded-box overlap so a graze still counts.
+  {
+    const bw = 24, byTop = L.white.y - 16, byBot = L.white.y + 54, cx = L.white.x;
+    const nxp = Math.max(cx - bw, Math.min(cx + bw, w.p.x));
+    const nyp = Math.max(byTop, Math.min(byBot, w.p.y));
+    const dw = Math.hypot(w.p.x - nxp, w.p.y - nyp);
+    if (dw < BALLR + 6) {
+      w.won = true; w.done = true;
+      w.pts.push({ x: L.white.x, y: L.white.y + 26 });
+      return;
+    }
+  }
+
+  // fail conditions
+  const sp = Math.hypot(w.v.x, w.v.y);
+  if (sp < 14) { w.stall += DT; if (w.stall > STALL_T) { w.fail = 'stalled'; w.done = true; } }
+  else w.stall = 0;
+  if (w.p.y > H + 160 || w.p.x < -160 || w.p.x > W + 160) { w.fail = 'lost'; w.done = true; }
+  if (w.t > TIME_CAP) { w.fail = 'time'; w.done = true; }
+}
+
+function score(w) { return Math.max(1, 999 - Math.round(w.path / SCORE_DIV)); }
+
+// run a full headless game; returns result
+function simulate(level, placements) {
+  const w = makeWorld(level, placements);
+  const maxSteps = Math.ceil(TIME_CAP / DT) + 10;
+  for (let i = 0; i < maxSteps && !w.done; i++) step(w);
+  return { won: w.won, fail: w.fail, score: score(w), path: w.path, t: w.t, pts: w.pts };
+}
+
+return { W, H, DT, GRAV, BALLR, SEG_TH, ARROW_SPEED, ARROW_R, FLIP_R, PORTAL_R, WIN_R,
+         hourDir, arrowAngleHour, makeWorld, step, score, simulate, closestOnRect, closestOnSeg };
+})();
+
+
+/* ============ embedded levels (verified solvable) ============ */
+// ============ BAT PHYSICS — 10 fresh flipped levels ============
+// Flipped screen-space (preFlipped:true): bats HANG from the ceiling (~y=360); the
+// ball spawns just BELOW the black bat and falls under gravity. Player places a POOL
+// of SINGLE-USE echos (each fires once then vanishes); fewer can solve, more may help.
+// WIN: white bat at y=360 has win-point y=386; an exit ledge with TOP at y=400 sits
+// right under it, so landing a ball there = win. hour: 12=up 3=right 6=down 9=left.
+'use strict';
+const LEVELS = (() => {
+const LV = [];
+const CEIL = 320;
+const ceil = () => [0,-40,1600,CEIL+40];
+const wallL = () => [-40,-40,60,1300], wallR = () => [1580,-40,60,1300];
+const T  = (h)=>({t:'fix',h});
+const Tosc=(h1,h2,p)=>({t:'osc',h1,h2,period:p||2.2});
+const R = (x,y,w,h)=>[x,y,w,h];
+// exit ledge under the white bat (top at y=400): ball landing here wins
+const exitLedge = (cx)=>R(cx-150,400,300,26);
+// little perch under the black bat so the launch is clean
+const startPerch = (cx)=>R(cx-130,400,260,22);
+
+// 1 · First Drop — fall to the floor, loft up to the exit ledge.
+LV.push({ name:'First Drop', ch:1, tip:"The black bat drops the ball — it falls under gravity. Place ECHOS to fling it to the white bat. Each echo fires once.", preFlipped:true, noAutoTerrain:true,
+  black:{x:230,y:360}, white:{x:1360,y:360}, launch:{vx:240,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(230), exitLedge(1360),
+    R(0,660,1600,40),
+  ],
+  tools:[ T(12), T(12) ] });
+
+// 2 · Over the Gap — a pit between the landing floor and the exit.
+LV.push({ name:'Over the Gap', ch:1, tip:"Echos sling the ball along their aim. Enter an up-echo from one side to curve up and across a gap.", preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,660,720,40), R(940,660,660,40),
+  ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 3 · Step Down — descending steps lead to a high exit.
+LV.push({ name:'Step Down', ch:1, tip:"Chain echos: each is single-use, so plan the whole route before you launch.", preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(80,520,340,26), R(540,610,340,26), R(1000,700,300,26),
+    R(0,840,1600,40),
+  ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 4 · Windmill Hall — three gentle windmills spin above the floor.
+LV.push({ name:'Windmill Hall', ch:1, tip:"WINDMILLS are free-spinning. Hit a blade to spin it up — a spinning blade flings the ball.", preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,720,1600,40),
+  ],
+  windmills:[ {x:560,y:600,len:80,speed:1.0,dir:1},
+              {x:820,y:600,len:80,speed:1.0,dir:-1},
+              {x:1080,y:600,len:80,speed:1.0,dir:1} ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 5 · The Cog — a spinning cog sits in the cavern floor.
+LV.push({ name:'The Cog', ch:1, tip:"The COG's big teeth grab the ball and carry it around the rim. Ride it toward the exit.", preFlipped:true, noAutoTerrain:true,
+  black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(210), exitLedge(1390),
+    R(0,700,1600,40),
+  ],
+  cogs:[ {x:780,y:640,r:90,spin:1,surf:300} ],
+  tools:[ T(12), T(12), T(1), T(1) ] });
+
+// 6 · Rubber Cavern — bouncy pads on the floor.
+LV.push({ name:'Rubber Cavern', ch:1, tip:"BOUNCY pads ricochet the ball with extra spring. Use the bounce to gain height.", preFlipped:true, noAutoTerrain:true,
+  black:{x:220,y:360}, white:{x:1380,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(220), exitLedge(1380),
+    R(0,720,1600,40),
+  ],
+  bouncy:[ R(620,690,240,30), R(980,690,240,30) ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 7 · Trapdoor — a button drops a two-flap trapdoor in the floor.
+LV.push({ name:'Trapdoor', ch:1, tip:"Hit the BUTTON to drop the two-flap TRAPDOOR, opening a path through the floor.", preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(0,660,700,40), R(900,660,700,40),
+  ],
+  buttons:[ {x:280,y:386,door:0} ],
+  doors:[ {x1:700,y1:660,x2:900,y2:660,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 8 · Secret Hollow — a black pillar hides a secret passage (ignored by verifier).
+LV.push({ name:'Secret Hollow', ch:1, tip:"Some black rock is a SECRET PASSAGE — the ball can pass straight through it.", preFlipped:true, noAutoTerrain:true,
+  black:{x:210,y:360}, white:{x:1390,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(210), exitLedge(1390),
+    R(0,660,1600,40),
+    R(720,440,40,120),
+  ],
+  secrets:[ R(860,440,120,220) ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 9 · Crag Run — dense crags and two windmills.
+LV.push({ name:'Crag Run', ch:1, tip:"Lots of crags and free-spinning windmills. Bank the ball off the terrain to the exit.", preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(60,560,360,26), R(560,650,320,26), R(1020,580,320,26),
+    R(300,460,40,100), R(760,460,40,120),
+    R(0,840,1600,40),
+  ],
+  windmills:[ {x:520,y:510,len:70,speed:1.0,dir:1},
+              {x:980,y:510,len:70,speed:1.0,dir:-1} ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// 10 · The Hanging Deep — finale: a cog, a bouncy pad, a button trapdoor, a secret.
+LV.push({ name:'The Hanging Deep', ch:1, tip:"Everything at once: cog, bounce, button and a secret. Find the line to the white bat.", preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1400,y:360}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    startPerch(200), exitLedge(1400),
+    R(0,700,560,40), R(860,700,740,40),
+    R(0,860,1600,40),
+  ],
+  cogs:[ {x:700,y:600,r:80,spin:-1,surf:300} ],
+  bouncy:[ R(1040,670,200,30) ],
+  buttons:[ {x:320,y:676,door:0} ],
+  doors:[ {x1:560,y1:700,x2:860,y2:700,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1180,500,100,200) ],
+  tools:[ T(12), T(12), T(1) ] });
+
+// ===================== ELABORATE MAZE LEVELS (11-20) =====================
+// More intricate: varied bat placements, NO ledge under the bats (catch via the
+// wide white-bat hit box), maze-like terrain, sawtooth crags. Some REQUIRE passing
+// through a trapdoor. Buttons always sit on a real surface. Authored, not pre-verified.
+
+// 11 · Pillar Maze — bats high on opposite walls, a forest of stalactites between.
+LV.push({ name:'Pillar Maze', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(440,330,44,220), R(900,330,44,220),
+    R(680,640,44,160),
+    R(1300,600,300,22),
+    R(0,820,1600,40),
+  ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 12 · The Drop Shaft — black bat centre-top, white low-left; must thread down then back.
+LV.push({ name:'The Drop Shaft', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:220,y:560}, launch:{vx:-260,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(1080,330,44,300),
+    R(560,620,520,28),
+    R(60,600,360,22),
+    R(0,840,1600,40),
+  ],
+  tools:[ T(12), T(11), T(1) ] });
+
+// 13 · Trapfall (REQUIRED) — the only route to the white bat is THROUGH a trapdoor.
+LV.push({ name:'Trapfall', ch:2, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1380,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1180,30),                  // upper floor (gap at 1180-1420 = trapdoor)
+    R(1420,560,180,30),                // upper floor resumes after the trap gap
+    R(1240,820,360,30),                // lower floor where the white bat lands
+  ],
+  buttons:[ {x:340,y:334,door:0} ],     // on the cave roof, beside the black bat
+  doors:[ {x1:1180,y1:560,x2:1420,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(12) ] });
+
+// 14 · Switchback — staggered shelves form a zigzag maze down to a corner exit.
+LV.push({ name:'Switchback', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:680}, launch:{vx:-280,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(300,470,900,28),
+    R(420,600,900,28),
+    R(300,730,900,28),
+    R(0,860,1600,40),
+  ],
+  tools:[ T(11), T(1), T(12), T(11) ] });
+
+// 15 · The Cog Mill — a cog and a windmill guard the maze.
+LV.push({ name:'The Cog Mill', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:180,y:380}, white:{x:1420,y:420}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(520,330,44,220), R(1040,330,44,220),
+    R(0,800,1600,40),
+  ],
+  cogs:[ {x:760,y:600,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  windmills:[ {x:1180,y:560,len:100,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 16 · Double Trap (REQUIRED) — two trapdoors, two buttons on the ceiling & a crag.
+LV.push({ name:'Double Trap', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,540,560,30), R(760,540,300,30), R(1260,540,340,30),
+    R(40,820,1520,30),
+  ],
+  buttons:[ {x:430,y:526,door:0}, {x:900,y:526,door:1} ],
+  doors:[ {x1:560,y1:540,x2:760,y2:540,trig:{k:'button'},flap:true},
+          {x1:1060,y1:540,x2:1260,y2:540,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 17 · Bounce Labyrinth — bouncy walls line a tight maze.
+LV.push({ name:'Bounce Labyrinth', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:640}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(300,330,44,260), R(1080,330,44,260),
+    R(560,620,480,28),
+    R(0,840,1600,40),
+  ],
+  bouncy:[ R(300,600,44,200), R(1080,600,44,200), R(700,500,200,28) ],
+  tools:[ T(12), T(11), T(1) ] });
+
+// 18 · Spiral Descent — a near-spiral of shelves; bats top-left & centre-low.
+LV.push({ name:'Spiral Descent', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:780,y:700}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(200,470,1000,26),
+    R(1000,470,26,200),
+    R(400,660,640,26),
+    R(400,520,26,160),
+    R(0,860,1600,40),
+  ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 19 · The Gauntlet — windmills + cog + a required trapdoor finale-ish.
+LV.push({ name:'The Gauntlet', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:720}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,720,30), R(980,560,620,30),
+    R(1280,820,320,30), R(40,820,900,30),
+  ],
+  windmills:[ {x:430,y:430,len:90,dir:1} ],
+  cogs:[ {x:840,y:620,r:80,spin:-1,surf:300,teeth:5,tooth:32} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:720,y1:560,x2:980,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 20 · Heart of the Maze — everything: cog, windmill, bounce, two traps, secret.
+LV.push({ name:'Heart of the Maze', ch:2, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(360,330,40,220), R(1200,330,40,220),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30),
+  ],
+  cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ T(12), T(1), T(11), T(12), T(12) ] });
+
+// ===================== LEVELS 21-50 (chapters 3-5) =====================
+// All mechanics in play: oscillating echos (Tosc), windmills, cogs, bouncy walls,
+// trapdoors (with real floor gaps), secrets. Complex, varied paths. All crags are
+// SOLID colliders. Bats placed against ceiling/walls. Authored + verified.
+
+// --- Chapter 3: Moving Echoes (introduce oscillating echos) ---
+LV.push({ name:'Sweep', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1300,400,44,320) ],
+  tools:[ Tosc(11,1), T(12) ] });
+
+LV.push({ name:'Metronome', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:560}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,700,1600,40), R(260,400,44,300) ],
+  tools:[ Tosc(11,1), T(12), T(11) ] });
+
+LV.push({ name:'Pendulum Pit', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:380}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,640,620,40), R(980,640,620,40), R(120,400,44,240), R(1430,400,44,240) ],
+  tools:[ Tosc(10,2), T(12), T(1) ] });
+
+LV.push({ name:'Twin Sweep', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1420,y:640}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(520,330,44,260), R(1080,330,44,260) ],
+  tools:[ Tosc(11,1), Tosc(1,3), T(12) ] });
+
+LV.push({ name:'Tick Tock', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:780,y:700}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(200,470,1000,26), R(400,660,640,26), R(0,860,1600,40) ],
+  tools:[ Tosc(10,2), T(12), T(11) ] });
+
+LV.push({ name:'Clockwork', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:420}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(520,330,44,220), R(1040,330,44,220), R(0,800,1600,40) ],
+  cogs:[ {x:760,y:600,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Oscillator Hall', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,1180,30), R(1420,560,180,30), R(1240,820,360,30) ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1180,y1:560,x2:1420,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Swing Low', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:700}, launch:{vx:-280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,470,900,28), R(420,620,900,28), R(0,860,1600,40) ],
+  bouncy:[ R(300,500,44,160) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Cradle', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,330,44,260), R(1080,330,44,260), R(560,620,480,28), R(0,840,1600,40) ],
+  windmills:[ {x:680,y:480,len:90,dir:1} ],
+  tools:[ Tosc(10,2), T(12), T(11) ] });
+
+LV.push({ name:'Resonance', ch:3, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:380}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30), R(40,820,1520,30) ],
+  buttons:[ {x:430,y:546,door:0} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1080,580,110,240) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// --- Chapter 4: Machine Works (cogs, windmills, bounce combos) ---
+LV.push({ name:'Gearbox', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,400,44,320) ],
+  cogs:[ {x:760,y:640,r:70,spin:1,surf:240,teeth:5,tooth:26} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'Mill Race', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:640}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,440,44,360) ],
+  windmills:[ {x:480,y:560,len:90,dir:1}, {x:820,y:560,len:90,dir:-1}, {x:1140,y:560,len:90,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+LV.push({ name:'Bounce House', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:200,y:640}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(760,330,44,260) ],
+  bouncy:[ R(400,700,240,30), R(960,700,240,30), R(640,520,44,180) ],
+  tools:[ T(12), T(11), T(1) ] });
+
+LV.push({ name:'Crusher', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:420}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(620,330,44,260), R(0,760,1600,40) ],
+  cogs:[ {x:860,y:640,r:70,spin:1,surf:240,teeth:5,tooth:26} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'Flywheel', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:560}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(260,400,44,320) ],
+  cogs:[ {x:760,y:600,r:80,spin:-1,surf:260,teeth:5,tooth:28} ],
+  tools:[ T(12), T(11), T(1), T(12) ] });
+
+LV.push({ name:'Turbine', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,720,30), R(980,560,620,30), R(1280,820,320,30), R(40,820,900,30) ],
+  windmills:[ {x:430,y:430,len:90,dir:1} ],
+  cogs:[ {x:840,y:620,r:80,spin:-1,surf:300,teeth:5,tooth:32} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:720,y1:560,x2:980,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+LV.push({ name:'Cog & Sweep', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,330,44,240), R(1180,330,44,240), R(0,800,1600,40),
+    R(820,500,260,26) ],
+  cogs:[ {x:600,y:600,r:80,spin:1,surf:300,teeth:5,tooth:30} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Mangle', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1320,600,280,22) ],
+  // upside-down triangle: three windmills across the top, one at the bottom centre
+  windmills:[ {x:480,y:470,len:90,dir:1}, {x:800,y:470,len:90,dir:-1}, {x:1120,y:470,len:90,dir:1},
+              {x:800,y:680,len:90,dir:-1} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'Ratchet', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:380}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,640,560,40), R(1040,640,560,40), R(120,400,44,240), R(1430,400,44,240) ],
+  cogs:[ {x:800,y:620,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  bouncy:[ R(620,560,40,160), R(940,560,40,160) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+LV.push({ name:'The Works', ch:4, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:220,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(360,330,40,110), R(1200,330,40,220),
+    R(720,560,300,30), R(1220,560,380,30),
+    R(40,820,520,30), R(1000,820,600,30) ],
+  cogs:[ {x:640,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  buttons:[ {x:980,y:546,door:0} ],
+  doors:[ {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// --- Chapter 5: The Deep Caves (hardest combos, long paths) ---
+LV.push({ name:'Descent', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,470,900,26), R(700,620,900,26), R(0,770,900,26), R(1300,860,300,30), R(40,880,1000,20) ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'Cavern Deep', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:760}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,470,1000,26), R(300,640,1000,26), R(0,840,1600,40), R(700,330,44,160) ],
+  windmills:[ {x:760,y:560,len:80,dir:1} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Stalactite Run', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,330,44,200), R(620,330,44,150), R(1040,330,44,160), R(0,800,1600,40),
+    R(404,740,40,60), R(556,740,40,60), R(1300,600,300,22) ],
+  cogs:[ {x:500,y:640,r:70,spin:1,surf:280,teeth:5,tooth:28} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'The Pit', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:820,y:820}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,700,30), R(940,560,660,30), R(40,860,1520,20),
+    R(1500,420,44,300) ],                       // new far-right wall the button sits on
+  buttons:[ {x:1486,y:560,door:0,face:'left'} ], // wall-mounted, rotated 90°, faces left
+  doors:[ {x1:700,y1:560,x2:940,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+LV.push({ name:'Maelstrom', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:700}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(300,330,44,240), R(1180,330,44,330), R(560,620,640,28), R(0,860,1600,40) ],
+  cogs:[ {x:760,y:520,r:90,spin:1,surf:340,teeth:5,tooth:34} ],
+  windmills:[ {x:420,y:740,len:80,dir:1}, {x:1100,y:740,len:80,dir:-1} ],
+  tools:[ Tosc(10,2), T(12), T(1) ] });
+
+LV.push({ name:'Labyrinth Deep', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:160,y:380}, white:{x:780,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(200,470,1000,26), R(1000,470,26,220), R(400,660,640,26), R(400,520,26,160), R(0,880,1600,20) ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+LV.push({ name:'Chasm', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,1080,30), R(1320,560,280,30), R(1240,820,360,30), R(700,330,44,160) ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1080,y1:560,x2:1320,y2:560,trig:{k:'button'},flap:true} ],
+  bouncy:[ R(500,500,44,60) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Vortex', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:380}, white:{x:200,y:560}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1340,400,44,320) ],
+  cogs:[ {x:820,y:640,r:70,spin:-1,surf:230,teeth:5,tooth:26} ],
+  tools:[ Tosc(11,1), T(12), T(11), T(12) ] });
+
+LV.push({ name:'The Long Dark', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(520,330,44,220), R(1000,330,44,200), R(0,800,1600,40), R(1280,560,320,22) ],
+  cogs:[ {x:740,y:660,r:70,spin:1,surf:300,teeth:5,tooth:28} ],
+  bouncy:[ R(1120,660,44,120) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+LV.push({ name:'Heart of the Deep', ch:5, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(1200,330,40,220), R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30), R(1300,820,300,30), R(40,820,1000,30) ],
+  cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true}, {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11), T(12) ] });
+
+// ===================== CHAPTER 6 · FOCUSED ITEM LEVELS (51-60) =====================
+// Each level sticks to a small set of items (per request): a few portals, a flipper,
+// a couple of trapdoors + a windmill, etc. Authored flipped; exit ledge under white.
+
+// 51 · Wormhole — three portals reposition the ball across the cavern.
+LV.push({ name:'Wormhole', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1280,560,320,22) ],
+  portals:[ {ax:560,ay:560,bx:980,by:420}, {ax:760,ay:680,bx:300,by:460}, {ax:1120,ay:600,bx:1300,by:500} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 52 · Kicker — a single flipper launches the ball up to the exit.
+LV.push({ name:'Kicker', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:480}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,740,1600,40), R(1280,520,320,22) ],
+  flippers:[ {x:1080,y:700,h:1} ],
+  tools:[ T(12), T(12) ] });
+
+// 53 · Twin Gates — two portals and a bouncy wall.
+LV.push({ name:'Twin Gates', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,600,300,22) ],
+  portals:[ {ax:520,ay:600,bx:1000,by:440}, {ax:760,ay:620,bx:300,by:440} ],
+  bouncy:[ R(1120,640,44,140) ],
+  tools:[ T(12), T(1) ] });
+
+// 54 · Drop & Flip — two trapdoors and a windmill below.
+LV.push({ name:'Drop & Flip', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,520,30), R(720,560,360,30), R(1280,560,320,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:300,y:546,door:0}, {x:900,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1080,y1:560,x2:1280,y2:560,trig:{k:'button'},flap:true} ],
+  windmills:[ {x:880,y:680,len:90,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 55 · Portal Climb — three portals stair-step the ball upward.
+LV.push({ name:'Portal Climb', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:560}, white:{x:1400,y:400}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,720,1600,40), R(1280,440,320,22),
+    R(120,600,260,22) ],
+  portals:[ {ax:520,ay:660,bx:760,by:560}, {ax:900,ay:620,bx:1100,by:500}, {ax:1180,ay:560,bx:1340,by:440} ],
+  tools:[ T(12), T(1) ] });
+
+// 56 · Double Kicker — two flippers in series.
+LV.push({ name:'Double Kicker', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:440}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,480,300,22) ],
+  flippers:[ {x:620,y:720,h:1}, {x:1080,y:700,h:12} ],
+  tools:[ T(12), T(11) ] });
+
+// 57 · Bounce Gate — a portal pair framed by bouncy walls.
+LV.push({ name:'Bounce Gate', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,640,300,22) ],
+  portals:[ {ax:700,ay:560,bx:1080,by:500} ],
+  bouncy:[ R(420,560,44,200), R(940,560,44,200) ],
+  tools:[ T(12), T(1) ] });
+
+// 58 · Trap Relay — two trapdoors, ball must drop through both.
+LV.push({ name:'Trap Relay', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,520,640,30), R(840,520,760,30),
+    R(0,700,900,30), R(1100,700,500,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:320,y:506,door:0}, {x:860,y:686,door:1} ],
+  doors:[ {x1:640,y1:520,x2:840,y2:520,trig:{k:'button'},flap:true},
+          {x1:900,y1:700,x2:1100,y2:700,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 59 · Flip & Warp — a flipper feeds a portal.
+LV.push({ name:'Flip & Warp', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,560,320,22) ],
+  flippers:[ {x:560,y:720,h:1} ],
+  portals:[ {ax:760,ay:420,bx:1120,by:480} ],
+  tools:[ T(12), T(11) ] });
+
+// 60 · The Exchange — three portals and a windmill finale.
+LV.push({ name:'The Exchange', ch:6, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1400,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,640,300,22),
+    R(520,330,44,200) ],
+  portals:[ {ax:400,ay:620,bx:980,by:440}, {ax:1100,ay:560,bx:300,by:520}, {ax:760,ay:700,bx:1240,by:560} ],
+  windmills:[ {x:1080,y:680,len:80,dir:-1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// ===================== CHAPTER 7 · THE SUNLESS RIVER (61-80) =====================
+// Backdrop: the underground river-canyon photo. A mix of all mechanics, varied
+// layouts, solid crags. Authored flipped; exit ledges under the white bat.
+
+// 61 · River Mouth — gentle intro, two echos over a wide span.
+LV.push({ name:'River Mouth', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:480}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,520,320,22),
+    R(620,420,44,200) ],
+  tools:[ T(12), T(1) ] });
+
+// 62 · The Narrows — tall converging pillars, thread the gap.
+LV.push({ name:'The Narrows', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,600,300,22),
+    R(560,330,44,300), R(1000,330,44,300) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 63 · Still Water — a bouncy pool wall lofts the ball.
+LV.push({ name:'Still Water', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,560,320,22) ],
+  bouncy:[ R(760,620,200,30) ],
+  tools:[ T(12), T(1) ] });
+
+// 64 · Undertow — a cog churns mid-river.
+LV.push({ name:'Undertow', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,560,300,22) ],
+  cogs:[ {x:780,y:640,r:90,spin:1,surf:320,teeth:5,tooth:34} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 65 · Sluice Gate — a trapdoor drop to the lower channel.
+LV.push({ name:'Sluice Gate', ch:7, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1080,30), R(1320,560,280,30),
+    R(1240,820,360,30), R(40,820,900,30),
+  ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1080,y1:560,x2:1320,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(12) ] });
+
+// 66 · Eddy — a free-spinning windmill mid-channel.
+LV.push({ name:'Eddy', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:500}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,540,300,22) ],
+  windmills:[ {x:760,y:520,len:100,dir:1} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 67 · Twin Channels — a portal pair links two passages.
+LV.push({ name:'Twin Channels', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1300,600,300,22),
+    R(700,330,44,260) ],
+  portals:[ {ax:520,ay:560,bx:1040,by:440} ],
+  tools:[ T(12), T(1) ] });
+
+// 68 · Cascade — two bouncy shelves step the ball down.
+LV.push({ name:'Cascade', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,660,300,22) ],
+  bouncy:[ R(560,520,200,26), R(980,640,200,26) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 69 · Deep Pool — cog and bouncy, a lower exit.
+LV.push({ name:'Deep Pool', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:660}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,700,300,22) ],
+  cogs:[ {x:680,y:640,r:80,spin:-1,surf:300,teeth:5,tooth:32} ],
+  bouncy:[ R(1040,680,44,140) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 70 · The Siphon — a portal drops the ball to a deep channel.
+LV.push({ name:'The Siphon', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:740}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,560,900,30), R(1240,820,360,30), R(40,820,900,30) ],
+  portals:[ {ax:640,ay:520,bx:1340,by:700} ],
+  tools:[ T(12), T(1) ] });
+
+// 71 · Rapids — windmill plus bouncy, fast water.
+LV.push({ name:'Rapids', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22) ],
+  windmills:[ {x:620,y:540,len:90,dir:1} ],
+  bouncy:[ R(1000,640,44,140) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 72 · Stone Weir — two trapdoors in the channel floor.
+LV.push({ name:'Stone Weir', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,540,520,30), R(720,540,360,30), R(1280,540,320,30),
+    R(1280,820,320,30), R(40,820,1000,30),
+  ],
+  buttons:[ {x:300,y:526,door:0}, {x:900,y:526,door:1} ],
+  doors:[ {x1:520,y1:540,x2:720,y2:540,trig:{k:'button'},flap:true},
+          {x1:1080,y1:540,x2:1280,y2:540,trig:{k:'button'},flap:true} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 73 · Plunge — flipper kicks the ball up to a high exit.
+LV.push({ name:'Plunge', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:440}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,1600,40), R(1280,480,320,22) ],
+  flippers:[ {x:1040,y:720,h:1} ],
+  tools:[ T(12), T(12) ] });
+
+// 74 · The Confluence — portal + cog meeting point.
+// 74 · The Confluence — a moving floor of wave rods carries the ball along.
+LV.push({ name:'The Confluence', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:480}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,760,300,40), R(1300,760,300,40),
+    R(1300,520,300,22),                     // exit ledge under the white bat
+    R(300,330,44,160) ],
+  // moving floor: 50 vertical rods rising/falling as a travelling wave; the ball
+  // must cross it, and catching the swell at the right spot lofts it to the bat.
+  wavefloor:[ {x:300,y:700,w:1000,n:50,maxRise:90,wavelen:20,rodsPerSec:10,depth:160} ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 75 · Drowned Hall — a vertical bar slides up/down; go over or under, or ride it up.
+LV.push({ name:'Drowned Hall', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:1400,y:400}, white:{x:240,y:400}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,520,30),                        // upper-left floor under the white bat
+    R(900,560,200,30),                      // small mid platform
+    R(0,820,640,30), R(900,820,700,30),     // lower floor with a hole at 640-900
+    R(40,440,360,22),                       // exit ledge by the white bat
+  ],
+  // vertical bar oscillating up/down in the middle: a gap above (toward the roof)
+  // and a hole below, but the bar blocks both paths as it travels. Catch its TOP as
+  // it rises to be flung up toward the white bat (top-left).
+  gatebars:[ {x:760,yTop:380,yBot:620,w:46,h:220,period:2.6} ],
+  tools:[ T(12), T(11), T(1) ] });
+
+// 76 · Whirlpool — oscillating echo over a cog.
+LV.push({ name:'Whirlpool', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,560,300,22) ],
+  cogs:[ {x:760,y:640,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 77 · The Gorge — tall pillars and a bouncy floor.
+LV.push({ name:'The Gorge', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    R(520,330,44,300), R(1040,330,44,260) ],
+  bouncy:[ R(700,660,260,28) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 78 · Black Lagoon — three portals across a deep pool.
+LV.push({ name:'Black Lagoon', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:560}, launch:{vx:280,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,600,300,22) ],
+  portals:[ {ax:520,ay:600,bx:980,by:440}, {ax:760,ay:680,bx:300,by:460}, {ax:1100,ay:560,bx:1300,by:500} ],
+  tools:[ T(12), T(1) ] });
+
+// 79 · The Cataract — cog, windmill and a bouncy drop.
+LV.push({ name:'The Cataract', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:660}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,700,300,22) ],
+  cogs:[ {x:560,y:660,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  windmills:[ {x:980,y:520,len:90,dir:-1} ],
+  bouncy:[ R(1180,700,44,120) ],
+  tools:[ T(12), T(1), T(11) ] });
+
+// 80 · Source of the River — everything: portal, windmill, trapdoor, bouncy, secret.
+LV.push({ name:'Source of the River', ch:7, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(420,330,40,220),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30) ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  portals:[ {ax:300,ay:620,bx:980,by:460} ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// ===================== CHAPTER 8 · THE ROOST (81-100) — HARD =====================
+// Backdrop: the dense bat-roost wall. Tough levels: up/down crags everywhere (no
+// purely flat floors), tight mazes, lots of oscillating (moving) echos. Includes a
+// 3-cog level, a many-windmill gauntlet, and a vertical climb (black bottom->white top).
+// Crag helpers: stal = stalactite hanging from ceiling; stag = stalagmite from floor.
+const stal=(x,len,wd)=>R(x,330,wd||44,len);            // hangs from the roof
+const stag=(x,top,len,wd)=>R(x,top,wd||44,len);        // rises from a floor
+
+// 81 · Broken Teeth — alternating up/down crags, oscillating echo.
+LV.push({ name:'Broken Teeth', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22),
+    stal(420,180), stag(700,640,160), stal(900,200), stag(1140,640,150) ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 82 · Sawtooth Run — a corridor of up/down crags to thread.
+LV.push({ name:'Sawtooth Run', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,780,1600,40), R(1300,560,300,22),
+    stal(360,150), stag(560,650,140), stal(760,170), stag(960,650,150), stal(1160,150) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 83 · The Three Cogs — three cogs churn across the cavern.
+LV.push({ name:'The Three Cogs', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:540}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,580,280,22),
+    stal(380,140), stal(1100,140) ],
+  cogs:[ {x:520,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32},
+         {x:820,y:640,r:90,spin:-1,surf:340,teeth:5,tooth:36},
+         {x:1120,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 84 · Pendulum Deep — oscillating echos over a chasm.
+LV.push({ name:'Pendulum Deep', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,520,460,30), R(1140,520,460,30),
+    R(1300,660,300,22), R(40,840,1520,30),
+    stal(640,260), stal(960,260) ],
+  tools:[ Tosc(10,2,2.0), Tosc(11,1,2.4), T(12) ] });
+
+// 85 · The Mill Gauntlet — a whole bank of windmills to get through.
+LV.push({ name:'The Mill Gauntlet', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:520}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1320,560,280,22) ],
+  windmills:[ {x:440,y:520,len:90,dir:1}, {x:660,y:560,len:90,dir:-1},
+              {x:880,y:520,len:90,dir:1}, {x:1100,y:560,len:90,dir:-1},
+              {x:560,y:680,len:80,dir:-1}, {x:980,y:680,len:80,dir:1} ],
+  tools:[ T(12), T(1), T(11), T(12), T(12) ] });
+
+// 86 · Stalactite Maze — dense hanging crags, oscillating echo.
+LV.push({ name:'Stalactite Maze', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,600,300,22),
+    stal(360,240), stal(560,180), stal(760,260), stal(960,180), stal(1160,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 87 · The Climb — black bat BOTTOM, white TOP; many up-echos to stair-step up.
+LV.push({ name:'The Climb', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:800,y:820}, white:{x:800,y:360}, launch:{vx:0,vy:-120},
+  rects:[ ceil(), wallL(), wallR(), R(0,860,1600,40),
+    R(300,720,180,22), R(1120,720,180,22),
+    R(420,560,180,22), R(1000,560,180,22),
+    R(700,440,200,22) ],
+  // every echo aims essentially straight up (h=12); the player stacks them as a
+  // staircase. Plenty are provided so the climb is achievable.
+  tools:[ T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12), T(12) ] });
+
+// 88 · Twin Vortex — two oscillating echos and two cogs.
+LV.push({ name:'Twin Vortex', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,600,280,22),
+    stal(720,200) ],
+  cogs:[ {x:520,y:660,r:80,spin:1,surf:320,teeth:5,tooth:32},
+         {x:1080,y:660,r:80,spin:-1,surf:320,teeth:5,tooth:32} ],
+  tools:[ Tosc(11,1), Tosc(10,2), T(12) ] });
+
+// 89 · Crag Chasm — up/down crags either side of a deep trapdoor.
+LV.push({ name:'Crag Chasm', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,1040,30), R(1360,560,240,30),
+    R(1240,820,360,30), R(40,820,900,30),
+    stal(420,160), stag(720,640,120) ],
+  buttons:[ {x:300,y:546,door:0} ],
+  doors:[ {x1:1040,y1:560,x2:1360,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 90 · Hanging Garden — stalactites + portal + oscillating echo.
+LV.push({ name:'Hanging Garden', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    stal(460,220), stal(880,220) ],
+  portals:[ {ax:680,ay:560,bx:1120,by:460} ],
+  tools:[ Tosc(11,1), T(12), T(1) ] });
+
+// 91 · The Furnace — three cogs and a windmill, tight.
+LV.push({ name:'The Furnace', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:560}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,600,280,22),
+    stal(380,150) ],
+  cogs:[ {x:560,y:660,r:78,spin:1,surf:320,teeth:5,tooth:32},
+         {x:860,y:660,r:78,spin:-1,surf:320,teeth:5,tooth:32} ],
+  windmills:[ {x:1120,y:540,len:90,dir:1} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 92 · Deep Switchback — zigzag shelves with up/down crags.
+LV.push({ name:'Deep Switchback', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:1420,y:380}, white:{x:200,y:700}, launch:{vx:-300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(320,470,900,26), R(420,600,900,26), R(320,730,900,26),
+    R(40,840,1520,30), stal(700,120), stag(900,580,90) ],
+  tools:[ Tosc(11,1), T(11), T(1), T(12) ] });
+
+// 93 · Bat Bridge — narrow ledges over a void, oscillating echos.
+LV.push({ name:'Bat Bridge', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:520}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,420,26), R(620,560,360,26), R(1180,560,420,26),
+    R(1300,560,300,22), R(40,860,1520,30),
+    stal(520,160), stal(1080,160) ],
+  tools:[ Tosc(10,2), Tosc(11,1), T(12) ] });
+
+// 94 · The Throat — converging walls funnel to a cog.
+LV.push({ name:'The Throat', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1300,640,300,22),
+    stal(540,200), stal(1020,200) ],
+  cogs:[ {x:780,y:660,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 95 · Windmill Spiral — windmills around a central drop.
+LV.push({ name:'Windmill Spiral', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:560}, launch:{vx:320,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1320,600,280,22) ],
+  windmills:[ {x:480,y:500,len:90,dir:1}, {x:760,y:600,len:90,dir:-1},
+              {x:1040,y:500,len:90,dir:1}, {x:620,y:700,len:80,dir:-1},
+              {x:900,y:700,len:80,dir:1} ],
+  tools:[ T(12), T(1), T(11), T(12) ] });
+
+// 96 · The Abyss — long fall, oscillating echos, trapdoor finish.
+LV.push({ name:'The Abyss', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,520,720,28), R(980,520,620,28),
+    R(1280,820,320,30), R(40,820,900,30),
+    stal(520,140), stag(1100,560,120) ],
+  buttons:[ {x:260,y:506,door:0} ],
+  doors:[ {x1:720,y1:520,x2:980,y2:520,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), Tosc(10,2), T(12) ] });
+
+// 97 · Maw of Stone — heavy up/down crags, cog + windmill.
+LV.push({ name:'Maw of Stone', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1440,y:620}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,820,1600,40), R(1320,660,280,22),
+    stal(420,200), stag(640,660,140), stal(880,220), stag(1100,660,140) ],
+  cogs:[ {x:760,y:600,r:74,spin:1,surf:300,teeth:5,tooth:30} ],
+  windmills:[ {x:520,y:520,len:80,dir:1} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 98 · Roost Run — portal + oscillating echos + crags.
+LV.push({ name:'Roost Run', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1420,y:600}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), R(0,800,1600,40), R(1300,640,300,22),
+    stal(520,240), stal(1040,200), stag(760,660,120) ],
+  portals:[ {ax:360,ay:600,bx:980,by:460} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 99 · The Gauntlet Deep — cogs + windmills + trapdoor, brutal.
+LV.push({ name:'The Gauntlet Deep', ch:8, preFlipped:true, preFlippedReq:true, noAutoTerrain:true,
+  black:{x:200,y:380}, white:{x:1400,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(),
+    R(0,560,640,30), R(900,560,700,30),
+    R(1280,820,320,30), R(40,820,840,30),
+    stal(460,160) ],
+  cogs:[ {x:760,y:660,r:80,spin:1,surf:320,teeth:5,tooth:34} ],
+  windmills:[ {x:1080,y:440,len:90,dir:-1} ],
+  buttons:[ {x:250,y:546,door:0} ],
+  doors:[ {x1:640,y1:560,x2:900,y2:560,trig:{k:'button'},flap:true} ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11) ] });
+
+// 100 · Heart of the Roost — everything, the finale.
+LV.push({ name:'Heart of the Roost', ch:8, preFlipped:true, noAutoTerrain:true,
+  black:{x:820,y:360}, white:{x:1440,y:760}, launch:{vx:300,vy:0},
+  rects:[ ceil(), wallL(), wallR(), stal(420,200), stal(1180,200),
+    R(0,560,520,30), R(720,560,300,30), R(1220,560,380,30),
+    R(1300,820,300,30), R(40,820,1000,30), stag(900,660,120) ],
+  cogs:[ {x:600,y:660,r:80,spin:1,surf:300,teeth:5,tooth:32} ],
+  windmills:[ {x:1020,y:430,len:90,dir:-1} ],
+  bouncy:[ R(880,620,180,28) ],
+  portals:[ {ax:300,ay:620,bx:980,by:460} ],
+  buttons:[ {x:200,y:546,door:0}, {x:980,y:546,door:1} ],
+  doors:[ {x1:520,y1:560,x2:720,y2:560,trig:{k:'button'},flap:true},
+          {x1:1020,y1:560,x2:1220,y2:560,trig:{k:'button'},flap:true} ],
+  secrets:[ R(1280,580,110,240) ],
+  tools:[ Tosc(11,1), T(12), T(1), T(11), T(12) ] });
+
+LV.forEach((l,i)=>{ l.id=i+1; });
+return LV;
+})();
+
+
+/* ============ embedded reference solutions + thresholds ============ */
+const SOLVED = [{"id":1,"ok":true,"sol":[{"x":1060,"y":582,"h":11},{"x":1393,"y":309,"h":10}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":2,"ok":true,"sol":[{"x":510,"y":520,"h":0},{"x":931,"y":373,"h":1},{"x":840,"y":410,"h":1},{"x":510,"y":630,"h":2}],"score":895,"two":735,"three":875,"robust":1,"extra":0},{"id":3,"ok":true,"sol":[{"x":166,"y":681,"h":5},{"x":1060,"y":630,"h":11},{"x":1190,"y":410,"h":1}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":4,"ok":true,"sol":[{"x":400,"y":520,"h":3},{"x":950,"y":410,"h":3},{"x":400,"y":410,"h":3},{"x":730,"y":410,"h":4}],"score":904,"two":744,"three":884,"robust":1,"extra":0},{"id":5,"ok":true,"sol":[{"x":204,"y":570,"h":2},{"x":481,"y":503,"h":1},{"x":840,"y":520,"h":0},{"x":466,"y":502,"h":3}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":6,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":330,"h":3}],"score":879,"two":719,"three":859,"robust":1,"extra":0},{"id":7,"ok":true,"sol":[{"x":430,"y":455,"h":4},{"x":895,"y":610,"h":0},{"x":265,"y":435,"h":5}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":8,"ok":true,"sol":[{"x":858,"y":166,"h":7},{"x":1170,"y":630,"h":11},{"x":1411,"y":563,"h":8}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":9,"ok":true,"sol":[{"x":370,"y":540,"h":8},{"x":580,"y":435,"h":2},{"x":1070,"y":400,"h":1}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":10,"ok":true,"sol":[{"x":559,"y":563,"h":2},{"x":1042,"y":552,"h":5},{"x":370,"y":564,"h":9}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":11,"ok":true,"sol":[{"x":510,"y":715,"h":11},{"x":676,"y":561,"h":2},{"x":1012,"y":641,"h":3},{"x":1486,"y":578,"h":10}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":12,"ok":true,"sol":[{"x":790,"y":400,"h":10},{"x":370,"y":540,"h":10},{"x":370,"y":540,"h":10}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":13,"ok":true,"sol":[{"x":160,"y":540,"h":2},{"x":475,"y":540,"h":9},{"x":230,"y":400,"h":5}],"score":841,"two":681,"three":821,"robust":1,"extra":0},{"id":14,"ok":true,"sol":[{"x":1280,"y":520,"h":10},{"x":1060,"y":630,"h":10},{"x":290,"y":630,"h":8},{"x":373,"y":512,"h":4}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":15,"ok":true,"sol":[{"x":477,"y":608,"h":10},{"x":1308,"y":774,"h":11},{"x":400,"y":630,"h":5}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":16,"ok":true,"sol":[{"x":240,"y":220,"h":3},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3},{"x":450,"y":220,"h":3}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":17,"ok":true,"sol":[{"x":1060,"y":630,"h":1},{"x":1201,"y":752,"h":3},{"x":290,"y":630,"h":8}],"score":798,"two":638,"three":778,"robust":1,"extra":0},{"id":18,"ok":true,"sol":[{"x":1170,"y":423,"h":8},{"x":793,"y":591,"h":11},{"x":512,"y":774,"h":1},{"x":180,"y":410,"h":9}],"score":908,"two":748,"three":888,"robust":1,"extra":0},{"id":19,"ok":true,"sol":[{"x":682,"y":692,"h":3},{"x":194,"y":362,"h":8},{"x":1232,"y":740,"h":4},{"x":450,"y":220,"h":3}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":20,"ok":true,"sol":[{"x":888,"y":472,"h":3},{"x":840,"y":410,"h":3},{"x":1170,"y":630,"h":2},{"x":450,"y":220,"h":3},{"x":520,"y":220,"h":3}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":21,"ok":true,"sol":[{"x":909,"y":245,"h":7},{"x":1170,"y":650,"h":11}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":22,"ok":true,"sol":[{"x":355,"y":436,"h":3},{"x":520,"y":680,"h":1},{"x":520,"y":530,"h":10}],"score":819,"two":659,"three":799,"robust":1,"extra":0},{"id":23,"ok":true,"sol":[{"x":984,"y":605,"h":8},{"x":970,"y":530,"h":1},{"x":207,"y":470,"h":1}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":24,"ok":true,"sol":[{"x":1420,"y":728},{"x":970,"y":680},{"x":380,"y":220,"h":3}],"score":938,"two":778,"three":918,"robust":1,"extra":0},{"id":25,"ok":true,"sol":[{"x":775,"y":429,"h":8},{"x":227,"y":367,"h":8},{"x":680,"y":783,"h":3}],"score":898,"two":738,"three":878,"robust":1,"extra":0},{"id":26,"ok":true,"sol":[{"x":548,"y":640,"h":11},{"x":1284,"y":728,"h":11},{"x":575,"y":749,"h":2}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":27,"ok":true,"sol":[{"x":240,"y":220},{"x":310,"y":220,"h":3},{"x":380,"y":220,"h":3}],"score":872,"two":712,"three":852,"robust":1,"extra":0},{"id":28,"ok":true,"sol":[{"x":1270,"y":530},{"x":138,"y":522,"h":4},{"x":1400,"y":400,"h":9}],"score":880,"two":720,"three":860,"robust":1,"extra":0},{"id":29,"ok":true,"sol":[{"x":1389,"y":749,"h":0},{"x":500,"y":660,"h":2},{"x":1120,"y":680,"h":1}],"score":849,"two":689,"three":829,"robust":1,"extra":0},{"id":30,"ok":true,"sol":[{"x":527,"y":524,"h":0},{"x":1120,"y":680,"h":1},{"x":670,"y":380,"h":5}],"score":848,"two":688,"three":828,"robust":1,"extra":0},{"id":31,"ok":true,"sol":[{"x":926,"y":425,"h":7},{"x":316,"y":648,"h":2},{"x":1432,"y":740,"h":10},{"x":944,"y":491,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":32,"ok":true,"sol":[{"x":953,"y":415,"h":1},{"x":1422,"y":410,"h":7},{"x":620,"y":740,"h":11}],"score":824,"two":664,"three":804,"robust":1,"extra":0},{"id":33,"ok":true,"sol":[{"x":138,"y":768,"h":2},{"x":70,"y":740,"h":3},{"x":380,"y":220,"h":3}],"score":882,"two":722,"three":862,"robust":1,"extra":0},{"id":34,"ok":true,"sol":[{"x":1156,"y":718,"h":11},{"x":1408,"y":695,"h":7},{"x":510,"y":630,"h":5},{"x":1170,"y":630,"h":0}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":35,"ok":true,"sol":[{"x":1196,"y":745,"h":8},{"x":1423,"y":610,"h":2},{"x":474,"y":628,"h":1},{"x":180,"y":410,"h":4}],"score":827,"two":667,"three":807,"robust":1,"extra":0},{"id":36,"ok":true,"sol":[{"x":730,"y":740,"h":0},{"x":290,"y":410,"h":7},{"x":730,"y":740,"h":3}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":37,"ok":true,"sol":[{"x":342,"y":153,"h":11},{"x":1070,"y":680,"h":2},{"x":1210,"y":680,"h":9}],"score":929,"two":769,"three":909,"robust":1,"extra":0},{"id":38,"ok":true,"sol":[{"x":370,"y":680,"h":1},{"x":930,"y":540,"h":9},{"x":1140,"y":365,"h":5},{"x":930,"y":540,"h":2}],"score":867,"two":707,"three":847,"robust":1,"extra":0},{"id":39,"ok":true,"sol":[{"x":270,"y":510,"h":1},{"x":596,"y":695,"h":10},{"x":770,"y":510,"h":2}],"score":896,"two":736,"three":876,"robust":1,"extra":0},{"id":40,"ok":true,"sol":[{"x":790,"y":400,"h":1},{"x":790,"y":400,"h":9},{"x":1073,"y":316,"h":8},{"x":1433,"y":146,"h":7}],"score":941,"two":781,"three":921,"robust":1,"extra":0},{"id":41,"ok":true,"sol":[{"x":670,"y":710,"h":2},{"x":1070,"y":710,"h":1},{"x":270,"y":410,"h":2},{"x":770,"y":710,"h":1}],"score":741,"two":581,"three":721,"robust":1,"extra":0},{"id":42,"ok":true,"sol":[{"x":1400,"y":700},{"x":1310,"y":700,"h":9},{"x":380,"y":220,"h":3}],"score":875,"two":715,"three":855,"robust":1,"extra":0},{"id":43,"ok":true,"sol":[{"x":335,"y":610,"h":1},{"x":370,"y":610,"h":1},{"x":1181,"y":695,"h":11},{"x":1210,"y":540,"h":4}],"score":873,"two":713,"three":853,"robust":1,"extra":0},{"id":44,"ok":true,"sol":[{"x":230,"y":540,"h":4},{"x":230,"y":400,"h":3},{"x":1321,"y":386,"h":7}],"score":821,"two":661,"three":801,"robust":1,"extra":0},{"id":45,"ok":true,"sol":[{"x":330,"y":392,"h":8},{"x":1009,"y":810,"h":11},{"x":1528,"y":710,"h":1}],"score":783,"two":623,"three":763,"robust":0.7777777777777778,"extra":0},{"id":46,"ok":true,"sol":[{"x":884,"y":584,"h":8},{"x":883,"y":698,"h":5},{"x":740,"y":134,"h":3},{"x":1212,"y":562,"h":9}],"score":854,"two":694,"three":834,"robust":1,"extra":0},{"id":47,"ok":true,"sol":[{"x":390,"y":502},{"x":70,"y":490,"h":3},{"x":600,"y":510,"h":3}],"score":866,"two":706,"three":846,"robust":1,"extra":0},{"id":48,"ok":true,"sol":[{"x":275,"y":660,"h":11},{"x":654,"y":264,"h":7},{"x":1490,"y":540,"h":11},{"x":650,"y":680,"h":10}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":49,"ok":true,"sol":[{"x":538,"y":657,"h":3},{"x":1019,"y":238,"h":1},{"x":1487,"y":251,"h":2}],"score":853,"two":693,"three":833,"robust":0.1111111111111111,"extra":0},{"id":50,"ok":true,"sol":[{"x":314,"y":690,"h":8},{"x":230,"y":400,"h":3},{"x":803,"y":193,"h":0},{"x":1090,"y":225,"h":1},{"x":1350,"y":680,"h":3}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":51,"ok":true,"sol":[{"x":230,"y":400,"h":4},{"x":930,"y":400,"h":3},{"x":1140,"y":365,"h":5}],"score":935,"two":775,"three":915,"robust":1,"extra":0},{"id":52,"ok":true,"sol":[{"x":230,"y":470,"h":1},{"x":790,"y":540,"h":0}],"score":893,"two":733,"three":873,"robust":1,"extra":0},{"id":53,"ok":true,"sol":[{"x":370,"y":680,"h":1},{"x":1412,"y":218,"h":10}],"score":933,"two":773,"three":913,"robust":1,"extra":0},{"id":54,"ok":true,"sol":[{"x":790,"y":680,"h":3},{"x":300,"y":400,"h":4},{"x":510,"y":540,"h":1}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":55,"ok":true,"sol":[{"x":440,"y":645,"h":2},{"x":1407,"y":680,"h":2}],"score":955,"two":795,"three":935,"robust":1,"extra":0},{"id":56,"ok":true,"sol":[{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":57,"ok":true,"sol":[{"x":585,"y":626,"h":10},{"x":300,"y":505,"h":2}],"score":921,"two":761,"three":901,"robust":1,"extra":0},{"id":58,"ok":true,"sol":[{"x":510,"y":680,"h":4},{"x":954,"y":726,"h":8},{"x":790,"y":680,"h":9}],"score":840,"two":680,"three":820,"robust":1,"extra":0},{"id":59,"ok":true,"sol":[{"x":1070,"y":680,"h":11},{"x":545,"y":540,"h":3}],"score":903,"two":743,"three":883,"robust":1,"extra":0},{"id":60,"ok":true,"sol":[{"x":1070,"y":400,"h":5},{"x":930,"y":400,"h":2},{"x":930,"y":400,"h":4}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":61,"ok":true,"sol":[{"x":930,"y":680,"h":0},{"x":265,"y":470,"h":0}],"score":877,"two":717,"three":857,"robust":1,"extra":0},{"id":62,"ok":true,"sol":[{"x":580,"y":680,"h":3},{"x":1037,"y":680,"h":0},{"x":370,"y":540,"h":2}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":63,"ok":true,"sol":[{"x":230,"y":400,"h":2},{"x":755,"y":610,"h":2}],"score":897,"two":737,"three":877,"robust":1,"extra":0},{"id":64,"ok":true,"sol":[{"x":1210,"y":680,"h":0},{"x":335,"y":750,"h":2},{"x":1274,"y":766,"h":10}],"score":852,"two":692,"three":832,"robust":1,"extra":0},{"id":65,"ok":true,"sol":[{"x":895,"y":540,"h":1},{"x":370,"y":540,"h":5},{"x":1070,"y":540,"h":3}],"score":891,"two":731,"three":871,"robust":1,"extra":0},{"id":66,"ok":true,"sol":[{"x":230,"y":400,"h":1},{"x":1210,"y":400,"h":3},{"x":790,"y":400,"h":7}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":67,"ok":true,"sol":[{"x":370,"y":645,"h":1},{"x":1265,"y":569,"h":9}],"score":939,"two":779,"three":919,"robust":1,"extra":0},{"id":68,"ok":true,"sol":[{"x":230,"y":400,"h":2},{"x":790,"y":400,"h":4},{"x":1341,"y":139,"h":9}],"score":894,"two":734,"three":874,"robust":1,"extra":0},{"id":69,"ok":true,"sol":[{"x":415,"y":666,"h":11},{"x":265,"y":540,"h":1},{"x":790,"y":365,"h":1}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":70,"ok":true,"sol":[{"x":230,"y":400,"h":3},{"x":1349,"y":350,"h":0}],"score":961,"two":801,"three":941,"robust":1,"extra":0},{"id":71,"ok":true,"sol":[{"x":393,"y":273,"h":2},{"x":405,"y":610,"h":0},{"x":965,"y":540,"h":1}],"score":886,"two":726,"three":866,"robust":1,"extra":0},{"id":72,"ok":true,"sol":[{"x":230,"y":400,"h":3},{"x":370,"y":435,"h":1},{"x":1339,"y":137,"h":11}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":73,"ok":true,"sol":[{"x":1000,"y":575,"h":3},{"x":230,"y":400,"h":3}],"score":883,"two":723,"three":863,"robust":1,"extra":0},{"id":74,"ok":true,"sol":[{"x":571,"y":553,"h":1},{"x":999,"y":371,"h":1},{"x":90,"y":680,"h":2}],"score":842,"two":682,"three":822,"robust":1,"extra":0},{"id":75,"ok":true,"sol":[{"x":790,"y":400,"h":11},{"x":1070,"y":400,"h":11},{"x":1350,"y":400,"h":11}],"score":903,"two":743,"three":883,"robust":1,"extra":0},{"id":76,"ok":true,"sol":[{"x":532,"y":745,"h":0},{"x":790,"y":540,"h":0},{"x":230,"y":400,"h":2}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":77,"ok":true,"sol":[{"x":1210,"y":680,"h":0},{"x":1070,"y":680,"h":2},{"x":1495,"y":360,"h":4}],"score":934,"two":774,"three":914,"robust":1,"extra":0},{"id":78,"ok":true,"sol":[{"x":370,"y":540,"h":2},{"x":230,"y":400,"h":5}],"score":950,"two":790,"three":930,"robust":1,"extra":0},{"id":79,"ok":true,"sol":[{"x":300,"y":470,"h":0},{"x":755,"y":435,"h":1},{"x":510,"y":400,"h":1}],"score":890,"two":730,"three":870,"robust":1,"extra":0},{"id":80,"ok":true,"sol":[{"x":1000,"y":575,"h":2},{"x":790,"y":400,"h":4},{"x":945,"y":502,"h":3},{"x":1315,"y":680,"h":5}],"score":942,"two":782,"three":922,"robust":1,"extra":0},{"id":81,"ok":true,"sol":[{"x":560,"y":699,"h":8},{"x":930,"y":680,"h":1},{"x":790,"y":540,"h":5}],"score":871,"two":711,"three":851,"robust":0.2222222222222222,"extra":0},{"id":82,"ok":true,"sol":[{"x":464,"y":632,"h":5},{"x":719,"y":467,"h":4},{"x":930,"y":680,"h":0},{"x":545,"y":575,"h":5}],"score":869,"two":709,"three":849,"robust":1,"extra":0},{"id":83,"ok":true,"sol":[{"x":487,"y":584,"h":3},{"x":510,"y":540,"h":1},{"x":510,"y":540,"h":1},{"x":230,"y":400,"h":5}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":84,"ok":true,"sol":[{"x":536,"y":529,"h":10},{"x":1053,"y":520,"h":5},{"x":930,"y":680,"h":3}],"score":839,"two":679,"three":819,"robust":0.1111111111111111,"extra":0},{"id":85,"ok":true,"sol":[{"x":370,"y":680,"h":2},{"x":1140,"y":435,"h":3},{"x":370,"y":540,"h":0},{"x":790,"y":400,"h":1},{"x":930,"y":400,"h":2}],"score":889,"two":729,"three":869,"robust":1,"extra":0},{"id":86,"ok":true,"sol":[{"x":367,"y":277,"h":3},{"x":1210,"y":680,"h":0},{"x":984,"y":763,"h":0},{"x":1210,"y":540,"h":4}],"score":868,"two":708,"three":848,"robust":1,"extra":0},{"id":87,"ok":true,"sol":[{"x":216,"y":139,"h":11},{"x":353,"y":633,"h":3},{"x":456,"y":640,"h":5},{"x":659,"y":489,"h":11},{"x":793,"y":836,"h":11},{"x":921,"y":638,"h":8},{"x":1068,"y":238,"h":5},{"x":1174,"y":399,"h":7},{"x":1338,"y":341,"h":4},{"x":1495,"y":555,"h":11}],"score":944,"two":784,"three":924,"robust":1,"extra":0},{"id":88,"ok":true,"sol":[{"x":404,"y":559,"h":11},{"x":1002,"y":505,"h":4},{"x":790,"y":680,"h":11}],"score":833,"two":673,"three":813,"robust":0.2222222222222222,"extra":0},{"id":89,"ok":true,"sol":[{"x":475,"y":470,"h":1},{"x":1031,"y":461,"h":11},{"x":1372,"y":502,"h":3}],"score":888,"two":728,"three":868,"robust":1,"extra":0},{"id":90,"ok":true,"sol":[{"x":510,"y":680,"h":7},{"x":370,"y":680,"h":1},{"x":1396,"y":612,"h":5}],"score":927,"two":767,"three":907,"robust":1,"extra":0},{"id":91,"ok":true,"sol":[{"x":425,"y":645,"h":2},{"x":650,"y":470,"h":1},{"x":860,"y":400,"h":1},{"x":510,"y":400,"h":4}],"score":878,"two":718,"three":858,"robust":0.8888888888888888,"extra":0},{"id":92,"ok":true,"sol":[{"x":930,"y":540,"h":11},{"x":1245,"y":505,"h":8},{"x":1350,"y":540,"h":9},{"x":650,"y":540,"h":8}],"score":892,"two":732,"three":872,"robust":1,"extra":0},{"id":93,"ok":true,"sol":[{"x":339,"y":588,"h":5},{"x":510,"y":540,"h":10},{"x":1494,"y":561,"h":4}],"score":841,"two":681,"three":821,"robust":0.1111111111111111,"extra":0},{"id":94,"ok":true,"sol":[{"x":444,"y":716,"h":3},{"x":510,"y":575,"h":4},{"x":1070,"y":540,"h":2},{"x":1391,"y":419,"h":1}],"score":878,"two":718,"three":858,"robust":0.3333333333333333,"extra":0},{"id":95,"ok":true,"sol":[{"x":230,"y":400,"h":0},{"x":510,"y":400,"h":7},{"x":1210,"y":400,"h":5},{"x":1526,"y":435,"h":0}],"score":885,"two":725,"three":865,"robust":1,"extra":0},{"id":96,"ok":true,"sol":[{"x":357,"y":392,"h":9},{"x":1065,"y":834,"h":8},{"x":930,"y":540,"h":9}],"score":734,"two":574,"three":714,"robust":0.3333333333333333,"extra":0},{"id":97,"ok":true,"sol":[{"x":1000,"y":610,"h":11},{"x":510,"y":680,"h":2},{"x":510,"y":680,"h":3},{"x":930,"y":540,"h":1}],"score":856,"two":696,"three":836,"robust":0.1111111111111111,"extra":0},{"id":98,"ok":true,"sol":[{"x":1210,"y":680,"h":4},{"x":1350,"y":540,"h":5},{"x":1070,"y":680,"h":2},{"x":1210,"y":680,"h":2}],"score":935,"two":775,"three":915,"robust":0.2222222222222222,"extra":0},{"id":99,"ok":true,"sol":[{"x":467,"y":595,"h":9},{"x":965,"y":610,"h":1},{"x":230,"y":400,"h":9},{"x":510,"y":540,"h":0}],"score":860,"two":700,"three":840,"robust":0.2222222222222222,"extra":0},{"id":100,"ok":true,"sol":[{"x":1070,"y":540,"h":8},{"x":825,"y":470,"h":7},{"x":864,"y":417,"h":11},{"x":1140,"y":610,"h":2},{"x":1460,"y":267,"h":2}],"score":908,"two":748,"three":888,"robust":0.5555555555555556,"extra":0}];
+/* merge thresholds onto levels */
+LEVELS.forEach((l,i)=>{ const s=SOLVED[i];
+  if(s){ l.two=s.two; l.three=s.three; l.refScore=s.score; l.refSol=s.sol; }
+  else { l.two=1; l.three=2; l.refScore=null; l.refSol=null; }   // unverified level
+});
+
+/* ============ persistence ============ */
+const SAVE_KEY='batphysics.v1';
+const Store={
+  data:{stars:{},best:{},unlocked:1},
+  load(){ try{const r=localStorage.getItem(SAVE_KEY); if(r)this.data=JSON.parse(r);}catch(e){} 
+          if(!this.data.stars)this.data={stars:{},best:{},unlocked:1}; },
+  save(){ try{localStorage.setItem(SAVE_KEY,JSON.stringify(this.data));}catch(e){} },
+  starsFor(id){return this.data.stars[id]||0;},
+  bestFor(id){return this.data.best[id]||0;},
+  bestPlacementFor(id){return (this.data.bestPos&&this.data.bestPos[id])||null;},
+  unlocked(id){return id<=this.data.unlocked;},
+  record(id,stars,score,placement){
+    if(stars>this.starsFor(id))this.data.stars[id]=stars;
+    if(score>this.bestFor(id)){
+      this.data.best[id]=score;
+      if(placement){ this.data.bestPos=this.data.bestPos||{}; this.data.bestPos[id]=placement; }
+    }
+    if(stars>=1 && id+1>this.data.unlocked && id<100)this.data.unlocked=id+1;
+    this.save();
+  },
+  totalStars(){let s=0;for(const k in this.data.stars)s+=this.data.stars[k];return s;},
+  totalScore(){let s=0;for(const k in this.data.best)s+=this.data.best[k];return s;},
+  cleared(){return Object.keys(this.data.best).filter(k=>this.data.best[k]>0).length;}
+};
+
+/* ============ canvas + camera ============ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let VIEW={s:1,ox:0,oy:0,W:0,H:0,dpr:1};
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=window.innerWidth,h=window.innerHeight;
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.width=w+'px'; cv.style.height=h+'px';
+  VIEW.dpr = dpr; VIEW.W = w; VIEW.H = h;
+  // Scale so the full WIDTH fits; the active play band (top of cave down through the
+  // bats and obstacles) is then centred vertically. The dead floor area below the
+  // action is allowed to clip off the bottom so the playfield sits centred rather
+  // than pinned high with a big empty ceiling band. Purely visual — world coords
+  // and physics are unchanged.
+  const sW = w/BP.W, sH = h/BP.H;
+  // use width fit, but don't let the visible world get shorter than the screen band
+  let s = sW;
+  VIEW.s = s;
+  VIEW.ox = (w - BP.W*s)/2;
+  const CONTENT_MID = 600;            // mid of the active play band (world units)
+  VIEW.oy = (h/2) - CONTENT_MID*s;
+  // clamp: keep the top of the world (ceiling) at/above the screen top, and don't
+  // pull so far up that we reveal empty space beyond the world bottom.
+  if(VIEW.oy > 0) VIEW.oy = 0;
+  const minOy = h - BP.H*s;
+  if(s >= sH && VIEW.oy < minOy) VIEW.oy = minOy;
+  // landscape-only: show a rotate prompt when the device is portrait.
+  // Use a media query, NOT window.orientation (undefined in an iOS standalone
+  // home-screen app) or the deprecated orientationchange event: matchMedia
+  // behaves the same in Safari and in a standalone window.
+  const portrait = window.matchMedia
+    ? window.matchMedia('(orientation: portrait)').matches
+    : (h > w);
+  const rp=document.getElementById('rotate');
+  if(rp) rp.style.display = portrait ? 'flex' : 'none';
+}
+window.addEventListener('resize',resize);
+// Orientation via matchMedia — fires reliably in Safari AND iOS standalone,
+// where orientationchange does not. Re-read after a short delay too, since iOS
+// can report stale innerWidth/innerHeight at the instant the query flips.
+if(window.matchMedia){
+  const mq=window.matchMedia('(orientation: portrait)');
+  const onOri=()=>{ resize(); setTimeout(resize,120); };
+  if(mq.addEventListener) mq.addEventListener('change',onOri);
+  else if(mq.addListener) mq.addListener(onOri);   // older Safari
+}
+
+function applyBaseTransform(){
+  const dpr=VIEW.dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function toScreen(wx,wy){return{x:wx*VIEW.s+VIEW.ox,y:wy*VIEW.s+VIEW.oy};}
+function toWorld(cx,cy){
+  return { x:(cx-VIEW.ox)/VIEW.s, y:(cy-VIEW.oy)/VIEW.s };
+}
+
+/* ============ rendering ============ */
+const Render=(()=>{
+  function hr(h){return BP.hourDir(h);}
+  // Per-chapter palette: sunrise orange (1) -> dusk purple -> deep night blue (10).
+  // Each entry: sky top/mid/bottom, glow pool color, rock top/bottom, rock rim.
+  const PAL=[
+    null,
+    {sky:['#3a1e0a','#6e3410','#1a0f08'], glow:'#ff9a3c', rock:['#5a3a1e','#241509'], rim:'#ffc08a'},
+    {sky:['#3a230c','#7a3e12','#1c1108'], glow:'#ff8a3a', rock:['#5c3c20','#26160a'], rim:'#ffc07a'},
+    {sky:['#33203a','#6e3a5e','#1a0f1c'], glow:'#ff7bd0', rock:['#4a2e52','#1e1226'], rim:'#e79bd0'},
+    {sky:['#2c1f44','#54356e','#160f24'], glow:'#b07bff', rock:['#3e2e5c','#180f28'], rim:'#c9a0ff'},
+    {sky:['#241f4a','#3a3a72','#120f28'], glow:'#8a7bff', rock:['#2e3160','#100f24'], rim:'#a9b0ff'},
+    {sky:['#1c2150','#2c3a76','#0e1024'], glow:'#5f8bff', rock:['#243660','#0c1024'], rim:'#7fb0ff'},
+    {sky:['#161f48','#243a6e','#0a0f22'], glow:'#4fa8e0', rock:['#1e3258','#0a0f20'], rim:'#6fc0e0'},
+    {sky:['#101a40','#1a2f60','#080c1e'], glow:'#37c0c8', rock:['#182a4e','#080c1c'], rim:'#46d0c0'},
+    {sky:['#0c1530','#142450','#060a18'], glow:'#37e0c8', rock:['#122244','#060a16'], rim:'#37e0c8'},
+    {sky:['#080f24','#0e1a3c','#04060f'], glow:'#37e0a0', rock:['#0e1a38','#04060e'], rim:'#37e0c8'},
+  ];
+  function pal(){ const ch=(Render._ch||1); return PAL[Math.max(1,Math.min(10,ch))]; }
+  function rhb(n){ const x=Math.sin(n*91.7)*43758.5; return x-Math.floor(x); }
+  // ---- stylised cave backdrops (purely decorative; behind the play area) ----
+  // Scene A: a deep field of hanging stalactites silhouetted in the upper cavern.
+  function backdropStalactites(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    // layered rows, far (faint) -> near (darker), each a run of triangular spikes
+    const rows=4;
+    for(let r=0;r<rows;r++){
+      const depth=r/(rows-1);
+      const baseY=y0 + h*(0.04+0.10*r);
+      const col = depth<0.5? P.rock[0] : P.rock[1];
+      ctx.globalAlpha=0.18+0.16*r;
+      ctx.fillStyle=col;
+      const n=Math.round(w/(70- r*8)/VIEW.s);
+      const step=w/n;
+      ctx.beginPath(); ctx.moveTo(x0,baseY-20);
+      for(let i=0;i<=n;i++){
+        const cx=x0+i*step;
+        const len=(20+rhb(r*13+i)*70+r*22)*VIEW.s;
+        const halfw=step*0.5;
+        ctx.lineTo(cx-halfw, baseY);
+        ctx.lineTo(cx+(rhb(r*7+i)-0.5)*halfw*0.6, baseY+len);
+        ctx.lineTo(cx+halfw, baseY);
+      }
+      ctx.lineTo(x0+w,baseY-20); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  // Scene B: a bright cave-mouth arch with tiny bats streaming out against the sky.
+  function backdropCaveMouth(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    // sky disc inside an arch (lighter than cave)
+    const cx=x0+w*0.54, cy=y0+h*0.46, rx=w*0.30, ry=h*0.42;
+    const sg=ctx.createRadialGradient(cx,cy,8,cx,cy,rx);
+    sg.addColorStop(0, P.glow+'55'); sg.addColorStop(0.7,P.glow+'22'); sg.addColorStop(1,P.glow+'00');
+    ctx.fillStyle=sg;
+    ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,7); ctx.fill();
+    // streaming bat silhouettes (little V shapes) spiralling from the opening
+    ctx.fillStyle='#0a0d16';
+    const t=performance.now()/1000;
+    for(let i=0;i<70;i++){
+      const a=rhb(i*3.1)*6.28 + t*0.05;
+      const rad=(0.2+rhb(i*1.7)*1.1)*rx;
+      const bx=cx+Math.cos(a)*rad*1.1;
+      const by=cy+Math.sin(a)*rad*0.8 - (t*8*rhb(i)%(h*0.5));
+      const s=(2+rhb(i*5.3)*3)*VIEW.s;
+      const flap=Math.sin(t*6+i)*0.4;
+      ctx.globalAlpha=0.5+0.4*rhb(i*2.2);
+      ctx.beginPath();
+      ctx.moveTo(bx,by);
+      ctx.quadraticCurveTo(bx-s, by-s*(0.8+flap), bx-s*2, by);
+      ctx.moveTo(bx,by);
+      ctx.quadraticCurveTo(bx+s, by-s*(0.8+flap), bx+s*2, by);
+      ctx.lineWidth=1.4*VIEW.s; ctx.strokeStyle='#0a0d16'; ctx.stroke();
+    }
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  // Scene C: diagonal volumetric light shafts cutting across the cavern.
+  function backdropLightShafts(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    const beams=[{x:w*0.34,wd:w*0.05},{x:w*0.52,wd:w*0.085},{x:w*0.66,wd:w*0.04}];
+    for(const b of beams){
+      const topx=x0+b.x, botx=x0+b.x+w*0.22;
+      const g=ctx.createLinearGradient(topx,y0,botx,y0+h);
+      g.addColorStop(0, P.glow+'00'); g.addColorStop(0.15,P.glow+'3a');
+      g.addColorStop(0.6,P.glow+'18'); g.addColorStop(1,P.glow+'00');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.moveTo(topx,y0); ctx.lineTo(topx+b.wd,y0);
+      ctx.lineTo(botx+b.wd*1.8, y0+h); ctx.lineTo(botx, y0+h);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  // Scene D: a smooth banded underground canyon converging to a dark passage, with
+  // a green-tinted water pool reflecting at the bottom (from the river-cave photo).
+  function backdropRiverCanyon(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    const cx=x0+w*0.52, vanish=y0+h*0.52;        // passage vanishing point
+    // converging canyon walls (left and right), smooth banded rock
+    for(const side of [-1,1]){
+      const baseX = cx + side*w*0.05;
+      const g=ctx.createLinearGradient(x0+(side<0?0:w), y0, cx, vanish);
+      g.addColorStop(0, P.rock[0]); g.addColorStop(1, '#0a0e16');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.moveTo(side<0?x0:x0+w, y0);
+      ctx.lineTo(side<0?x0:x0+w, y0+h*0.7);
+      ctx.lineTo(baseX, vanish);
+      ctx.lineTo(cx, vanish-20);
+      ctx.closePath(); ctx.fill();
+      // horizontal sediment bands sweeping toward the vanishing point
+      ctx.strokeStyle=P.rim; ctx.globalAlpha=0.10; ctx.lineWidth=2*VIEW.s;
+      for(let b=0;b<7;b++){
+        const ty=y0+h*(0.30+b*0.07);
+        ctx.beginPath(); ctx.moveTo(side<0?x0:x0+w, ty);
+        ctx.quadraticCurveTo(cx+side*w*0.16, vanish+10, cx, vanish-6); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+    }
+    // dark passage at the vanishing point
+    const pg=ctx.createRadialGradient(cx,vanish,4,cx,vanish,w*0.12);
+    pg.addColorStop(0,'#04060c'); pg.addColorStop(1,'#04060c00');
+    ctx.fillStyle=pg; ctx.beginPath(); ctx.ellipse(cx,vanish,w*0.10,h*0.12,0,0,7); ctx.fill();
+    // green water pool across the lower third with soft ripples + reflection glow
+    const waterTop=y0+h*0.66;
+    const wg=ctx.createLinearGradient(0,waterTop,0,y0+h);
+    wg.addColorStop(0,'#1f5a4e55'); wg.addColorStop(0.4,'#2f7d6633'); wg.addColorStop(1,'#0c241e88');
+    ctx.fillStyle=wg; ctx.fillRect(x0,waterTop,w,h-(waterTop-y0));
+    // a brighter reflected pool of light near the centre
+    const rg2=ctx.createRadialGradient(cx,waterTop+h*0.08,6,cx,waterTop+h*0.08,w*0.22);
+    rg2.addColorStop(0,'#7fe6b033'); rg2.addColorStop(1,'#7fe6b000');
+    ctx.fillStyle=rg2; ctx.fillRect(x0,waterTop,w,h-(waterTop-y0));
+    // ripple lines
+    ctx.strokeStyle='#bff3dd'; ctx.globalAlpha=0.10; ctx.lineWidth=1.4*VIEW.s;
+    const t=performance.now()/1400;
+    for(let i=0;i<5;i++){ const ry=waterTop+h*(0.06+i*0.05); const ph=Math.sin(t+i)*6*VIEW.s;
+      ctx.beginPath(); ctx.moveTo(x0,ry+ph); ctx.quadraticCurveTo(cx,ry-8*VIEW.s+ph,x0+w,ry+ph); ctx.stroke(); }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+  // Scene E: a warm-lit sloping cave wall densely covered with hanging bat
+  // silhouettes (the roost photo). A diagonal ledge crack splits the wall.
+  function backdropBatRoost(x0,y0,w,h,P){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
+    // warm wash + a soft lamp glow from upper-left
+    const lg=ctx.createRadialGradient(x0+w*0.36,y0+h*0.42,8,x0+w*0.36,y0+h*0.42,w*0.5);
+    lg.addColorStop(0, P.rim+'30'); lg.addColorStop(1, P.rim+'00');
+    ctx.fillStyle=lg; ctx.fillRect(x0,y0,w,h);
+    // diagonal crack/ledge across the wall
+    const cy0=y0+h*0.34, cy1=y0+h*0.58;
+    ctx.strokeStyle='#04060a'; ctx.globalAlpha=0.6; ctx.lineWidth=4*VIEW.s;
+    ctx.beginPath(); ctx.moveTo(x0,cy0);
+    for(let i=0;i<=8;i++){ const fx=x0+w*i/8; const fy=cy0+(cy1-cy0)*i/8+(rhb(i*4.2)-0.5)*16*VIEW.s; ctx.lineTo(fx,fy);} 
+    ctx.stroke(); ctx.globalAlpha=1;
+    // dense field of little hanging-bat silhouettes on the upper wall
+    ctx.fillStyle='#0b0d14';
+    const rows=7, cols=18;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const jx=(rhb(r*31+c)-0.5)*0.6, jy=(rhb(r*7+c*3)-0.5)*0.4;
+      const bx=x0+w*((c+0.5+jx)/cols);
+      const by=y0+h*(0.06+(r+0.5+jy)*0.045);
+      // skip below the crack line so bats stay on the upper roost
+      const crackY=cy0+(cy1-cy0)*((bx-x0)/w);
+      if(by>crackY-6*VIEW.s) continue;
+      ctx.globalAlpha=0.45+0.4*rhb(r*5+c*2);
+      const s=(3+rhb(r+c)*3)*VIEW.s;
+      // teardrop body
+      ctx.beginPath(); ctx.ellipse(bx,by,s*0.6,s*1.3,0,0,7); ctx.fill();
+      // a faint pale highlight on one (a lit bat, like the photo)
+      if(r===3 && c===4){ ctx.globalAlpha=0.7; ctx.fillStyle='#d8d2c4';
+        ctx.beginPath(); ctx.ellipse(bx,by,s*0.7,s*1.4,0,0,7); ctx.fill(); ctx.fillStyle='#0b0d14'; }
+    }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+  function bg(){
+    const P=pal();
+    const AW = VIEW.W, AH = VIEW.H;
+    ctx.fillStyle='#05070d'; ctx.fillRect(-10,-10,AW+20,AH+20);
+    // playable gradient fills only BELOW the ceiling line; everything above is black
+    const top=toScreen(0,CEIL_Y), p=toScreen(0,0);
+    const botY=toScreen(0,BP.H).y;
+    const g=ctx.createLinearGradient(0,top.y,0,botY);
+    g.addColorStop(0,P.sky[0]); g.addColorStop(.55,P.sky[1]); g.addColorStop(1,P.sky[2]);
+    ctx.fillStyle=g;
+    ctx.fillRect(p.x, top.y, BP.W*VIEW.s, botY-top.y);
+    // stylised backdrop scene (decorative only)
+    const ch=(Render._ch||1);
+    const bx=p.x, by=top.y, bw=BP.W*VIEW.s, bh=botY-top.y;
+    if(ch===7) backdropRiverCanyon(bx,by,bw,bh,P);
+    else if(ch===8) backdropBatRoost(bx,by,bw,bh,P);
+    else { const scene=(ch-1)%3;
+      if(scene===0) backdropStalactites(bx,by,bw,bh,P);
+      else if(scene===1) backdropCaveMouth(bx,by,bw,bh,P);
+      else backdropLightShafts(bx,by,bw,bh,P); }
+    // sun/moon glow pool behind
+    const cx=toScreen(BP.W/2,BP.H*0.74);
+    const rg=ctx.createRadialGradient(cx.x,cx.y,10,cx.x,cx.y,560*VIEW.s);
+    rg.addColorStop(0,P.glow+'44'); rg.addColorStop(.5,P.glow+'18'); rg.addColorStop(1,P.glow+'00');
+    ctx.fillStyle=rg; ctx.fillRect(p.x, top.y, BP.W*VIEW.s, botY-top.y);
+  }
+  // small deterministic hash so each rock's jaggedness is stable frame-to-frame
+  function rh(n){ const x=Math.sin(n*127.1)*43758.5; return x-Math.floor(x); }
+  // CEIL/floor reference (world): ceiling slab bottom, floor top
+  const CEIL_Y = 320;     // matches levels.js CEIL
+  // a craggy run of points along a horizontal edge (sawtooth, jittered)
+  function craggyEdge(x0,x1,baseY,amp,seed,down){
+    const pts=[]; const tooth=16*VIEW.s; const span=x1-x0;
+    const steps=Math.max(3,Math.round(span/tooth));
+    for(let i=0;i<=steps;i++){
+      const fx=x0+span*i/steps;
+      const peak=(i%2===0)?-amp:amp*0.4;
+      const jit=(rh(seed+i*2.3)-0.5)*amp;
+      pts.push({x:fx, y:baseY + (down?1:-1)*(peak+jit)});
+    }
+    return pts;
+  }
+  function fillBlackBody(a,w,h,topPts){
+    // fill a rock as solid cave-black with a craggy edge given by topPts (its open side)
+    ctx.fillStyle='#05070d';
+    ctx.beginPath();
+    ctx.moveTo(topPts[0].x, topPts[0].y);
+    for(const p of topPts) ctx.lineTo(p.x,p.y);
+    ctx.lineTo(a.x+w, a.y+h+40); ctx.lineTo(a.x, a.y+h+40);
+    ctx.closePath(); ctx.fill();
+  }
+  function rockShape(a,w,h,seed,col0,col1,rim){
+    const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+h);
+    g.addColorStop(0,col0); g.addColorStop(1,col1);
+    ctx.fillStyle=g;
+    const amp=(h>60?16:9)*VIEW.s;
+    const top=craggyEdge(a.x,a.x+w,a.y,amp,seed,false);
+    ctx.beginPath(); ctx.moveTo(top[0].x,top[0].y);
+    for(const p of top) ctx.lineTo(p.x,p.y);
+    ctx.lineTo(a.x+w,a.y+h); ctx.lineTo(a.x,a.y+h); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=rim; ctx.globalAlpha=0.55; ctx.lineWidth=1.6*VIEW.s;
+    ctx.beginPath(); ctx.moveTo(top[0].x,top[0].y); for(const p of top)ctx.lineTo(p.x,p.y); ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle=rim; ctx.globalAlpha=0.18;
+    for(let i=0;i<Math.max(1,w/90);i++){const sx=a.x+rh(seed+i*3.7)*w,sy=a.y+10+rh(seed+i*5.3)*(h-14);ctx.fillRect(sx,sy,2*VIEW.s,6*VIEW.s);}
+    ctx.globalAlpha=1;
+  }
+  // a downward stalactite / upward stalagmite: triangular-ish, uneven, joined flat to base
+  function spike(cx, baseY, halfW, len, seed, down, col0,col1,rim){
+    const dir=down?1:-1;
+    const tipx=cx+(rh(seed)-0.5)*halfW*0.5;
+    const tipy=baseY+dir*len;
+    const g=down? ctx.createLinearGradient(0,baseY,0,tipy) : ctx.createLinearGradient(0,tipy,0,baseY);
+    g.addColorStop(down?0:1,col0); g.addColorStop(down?1:0,col1);
+    ctx.fillStyle=g;
+    // uneven sides: a couple of jagged steps down each edge
+    ctx.beginPath();
+    ctx.moveTo(cx-halfW, baseY);
+    // left edge to tip
+    ctx.lineTo(cx-halfW*0.55+(rh(seed+1)-0.5)*halfW*0.4, baseY+dir*len*0.45);
+    ctx.lineTo(tipx, tipy);
+    ctx.lineTo(cx+halfW*0.55+(rh(seed+2)-0.5)*halfW*0.4, baseY+dir*len*0.45);
+    ctx.lineTo(cx+halfW, baseY);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=rim; ctx.globalAlpha=0.5; ctx.lineWidth=1.4*VIEW.s; ctx.stroke(); ctx.globalAlpha=1;
+  }
+  function rock(L){
+    const P=pal();
+    ctx.save();
+    const sw=BP.W*VIEW.s;
+    for(let ri=0;ri<(L.rects||[]).length;ri++){
+      const r=L.rects[ri];
+      if(r[0]<-30||r[0]>1575) continue;                 // skip side frame walls
+      const a=toScreen(r[0],r[1]);
+      const w=r[2]*VIEW.s,h=r[3]*VIEW.s;
+      const topW=r[1], botW=r[1]+r[3];                  // world top/bottom
+      const isCeiling = topW <= 0;                      // ceiling slab
+      const isFloor = botW >= 880;                      // floor slab (near world bottom)
+      const isStalactite = Math.abs(topW-CEIL_Y) < 16 && r[3] > 80; // hangs from ceiling
+      const isStalagmite = botW>=880 ? false : (Math.abs(botW-820)<60 || r[3]>120 && topW>460);
+
+      if(isCeiling){
+        // solid black ceiling; craggy stalactite-style bottom edge at its lower face
+        const by=toScreen(0,r[1]+r[3]).y;
+        ctx.fillStyle='#05070d';
+        const edge=craggyEdge(a.x,a.x+w, by, 14*VIEW.s, ri*7+3, true);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y-10);
+        ctx.lineTo(a.x+w,a.y-10);
+        ctx.lineTo(edge[edge.length-1].x, edge[edge.length-1].y);
+        for(let i=edge.length-1;i>=0;i--) ctx.lineTo(edge[i].x,edge[i].y);
+        ctx.closePath(); ctx.fill();
+        // a few hanging stalactites along the ceiling for cave feel
+        ctx.save();
+        for(let k=0;k<Math.round(w/260);k++){
+          const cx=a.x+ (0.18+0.64*rh(ri*5+k))*w;
+          spike(cx, by, (10+rh(ri+k)*8)*VIEW.s, (24+rh(ri*3+k)*46)*VIEW.s, ri*13+k, true, P.rock[0],P.rock[1],P.rim);
+        }
+        ctx.restore();
+        continue;
+      }
+      if(isFloor){
+        // solid black floor; craggy top edge
+        ctx.fillStyle='#05070d';
+        const edge=craggyEdge(a.x,a.x+w, a.y, 14*VIEW.s, ri*7+9, false);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y+h+20);
+        for(const p of edge) ctx.lineTo(p.x,p.y);
+        ctx.lineTo(a.x+w,a.y+h+20); ctx.closePath(); ctx.fill();
+        continue;
+      }
+      if(isStalactite){
+        // a hanging pillar = stalactite: joined flat at ceiling top, triangular tip
+        spike(a.x+w/2, a.y, w*0.6, h, ri*11+1, true, P.rock[0],P.rock[1],P.rim);
+        continue;
+      }
+      // default rocky shelf/crag with craggy top
+      rockShape(a,w,h,ri*9+1,P.rock[0],P.rock[1],P.rim);
+    }
+    // secret passages: look like solid rock, ball passes through
+    for(let si=0;si<(L.secrets||[]).length;si++){
+      const r=L.secrets[si]; const a=toScreen(r[0],r[1]);
+      rockShape(a,r[2]*VIEW.s,r[3]*VIEW.s,800+si*13,P.rock[0],P.rock[1],P.rim);
+    }
+    ctx.restore();
+  }
+  // moving floor: a band of vertical rods rising/falling as a travelling wave.
+  function waveRiseR(wf,k,t){
+    const wavelen=wf.wavelen||10, rodsPerSec=wf.rodsPerSec||10;
+    let ph=((k - t*rodsPerSec)%wavelen+wavelen)%wavelen;
+    const tri=ph<wavelen/2?(ph/(wavelen/2)):(2-ph/(wavelen/2));
+    return (wf.maxRise||90)*tri;
+  }
+  function wavefloor(L,w){
+    (L.wavefloor||[]).forEach((wf)=>{
+      const n=wf.n||50, rodW=wf.w/n;
+      const base=toScreen(wf.x,wf.y);
+      const floorBot=toScreen(wf.x,wf.y+ (wf.depth||120));
+      for(let k=0;k<n;k++){
+        const rise=waveRiseR(wf,k,w.t);
+        const top=toScreen(wf.x+k*rodW, wf.y-rise);
+        const x=base.x + k*rodW*VIEW.s;
+        const ww=rodW*VIEW.s;
+        const g=ctx.createLinearGradient(0,top.y,0,floorBot.y);
+        g.addColorStop(0, '#7fb0d6'); g.addColorStop(0.5,'#3f6aa0'); g.addColorStop(1,'#1a2742');
+        ctx.fillStyle=g;
+        ctx.fillRect(x+0.5, top.y, Math.max(1,ww-1), floorBot.y-top.y);
+        ctx.fillStyle='#bfe3ff';
+        ctx.fillRect(x+0.5, top.y, Math.max(1,ww-1), 3*VIEW.s);
+      }
+    });
+  }
+  function gatebars(L,w){
+    (L.gatebars||[]).forEach((g)=>{
+      const span=(g.yBot-g.yTop);
+      const ph=Math.sin((w.t/(g.period||2.4))*Math.PI*2)*0.5+0.5;
+      const barTop=g.yTop+span*ph;
+      const p=toScreen(g.x,barTop);
+      const ww=g.w*VIEW.s, hh=(g.h||200)*VIEW.s;
+      const railTop=toScreen(g.x,g.yTop), railBot=toScreen(g.x,g.yBot+(g.h||200));
+      ctx.strokeStyle='#ffffff22'; ctx.lineWidth=1.4*VIEW.s;
+      ctx.beginPath(); ctx.moveTo(p.x,railTop.y); ctx.lineTo(p.x,railBot.y);
+      ctx.moveTo(p.x+ww,railTop.y); ctx.lineTo(p.x+ww,railBot.y); ctx.stroke();
+      const gr=ctx.createLinearGradient(p.x,0,p.x+ww,0);
+      gr.addColorStop(0,'#c98bff'); gr.addColorStop(0.5,'#7b4fd0'); gr.addColorStop(1,'#4a2f8a');
+      ctx.fillStyle=gr;
+      rr(p.x,p.y,ww,hh,6*VIEW.s); ctx.fill();
+      ctx.strokeStyle='#e6cffa'; ctx.globalAlpha=0.6; ctx.lineWidth=1.6*VIEW.s; ctx.stroke(); ctx.globalAlpha=1;
+    });
+  }
+  function cogs(L,w){
+    (L.cogs||[]).forEach((c)=>{
+      const p=toScreen(c.x,c.y); const R=c.r*VIEW.s;
+      const tooth=((c.tooth!=null?c.tooth:30))*VIEW.s;
+      const nteeth=c.teeth||5;
+      const surf=(c.surf!=null?c.surf:320);
+      const ang=(performance.now()/1000)*(surf/Math.max(40,c.r))*(c.spin||1);
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang);
+      // few big teeth with wide gaps the ball can nestle into
+      ctx.fillStyle='#586484';
+      for(let i=0;i<nteeth;i++){ ctx.save(); ctx.rotate(i*Math.PI*2/nteeth);
+        const wB=R*0.30, wT=R*0.20;
+        ctx.beginPath();
+        ctx.moveTo(-wB,-R+2); ctx.lineTo(-wT,-R-tooth);
+        ctx.lineTo(wT,-R-tooth); ctx.lineTo(wB,-R+2);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      // body
+      const g=ctx.createRadialGradient(0,0,R*0.2,0,0,R);
+      g.addColorStop(0,'#2c3450'); g.addColorStop(1,'#1a2238');
+      ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
+      ctx.strokeStyle='#6678a6'; ctx.lineWidth=2.5*VIEW.s; ctx.stroke();
+      ctx.strokeStyle='#5a6b96'; ctx.lineWidth=4*VIEW.s;
+      for(let i=0;i<6;i++){ctx.rotate(Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,R*0.82);ctx.stroke();}
+      ctx.fillStyle='#7e90c0'; ctx.beginPath();ctx.arc(0,0,R*0.18,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function windmills(L,w){
+    (L.windmills||[]).forEach((m,mi)=>{
+      const p=toScreen(m.x,m.y); const len=m.len*VIEW.s;
+      // free-spinning: use the live blade angle from the world
+      const ang=(w.wmAng?w.wmAng[mi]:0);
+      const spinning=Math.abs(w.wmVel?w.wmVel[mi]:0)>0.05;
+      ctx.save(); ctx.translate(p.x,p.y);
+      // mounting post + hub
+      ctx.fillStyle='#2a1f3a'; ctx.fillRect(-5*VIEW.s,0,10*VIEW.s,60*VIEW.s);
+      ctx.fillStyle='#3a2a4e'; ctx.beginPath();ctx.arc(0,0,11*VIEW.s,0,7);ctx.fill();
+      for(let k=0;k<4;k++){
+        const a2=ang+k*Math.PI/2;
+        ctx.save(); ctx.rotate(a2);
+        const g=ctx.createLinearGradient(0,0,len,0);
+        g.addColorStop(0, spinning?'#b79bff':'#9b7bd6'); g.addColorStop(1,'#5f49a8');
+        ctx.fillStyle=g;
+        ctx.beginPath(); ctx.moveTo(0,-7*VIEW.s); ctx.lineTo(len,-4*VIEW.s);
+        ctx.lineTo(len,4*VIEW.s); ctx.lineTo(0,7*VIEW.s); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='#cbb6f5'; ctx.globalAlpha=0.5; ctx.lineWidth=1.2*VIEW.s; ctx.stroke(); ctx.globalAlpha=1;
+        ctx.restore();
+      }
+      ctx.fillStyle='#c9b6f0'; ctx.beginPath();ctx.arc(0,0,5*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function bouncy(L,w){
+    for(const r of (L.bouncy||[])){
+      const a=toScreen(r[0],r[1]); const ww=r[2]*VIEW.s, hh=r[3]*VIEW.s;
+      const g=ctx.createLinearGradient(a.x,a.y,a.x,a.y+hh);
+      g.addColorStop(0,'#2bd6a0'); g.addColorStop(1,'#159e76');
+      ctx.fillStyle=g; rr(a.x,a.y,ww,hh,Math.min(10*VIEW.s,hh/2,ww/2)); ctx.fill();
+      ctx.strokeStyle='#7dffd8'; ctx.lineWidth=2*VIEW.s; ctx.stroke();
+      // chevrons to signal springiness
+      ctx.strokeStyle='#bafff0'; ctx.globalAlpha=0.7; ctx.lineWidth=2*VIEW.s;
+      const n=Math.max(1,Math.floor(Math.max(ww,hh)/22));
+      for(let i=0;i<n;i++){ const yy=a.y+6*VIEW.s+i*18*VIEW.s; if(yy>a.y+hh-6*VIEW.s)break;
+        ctx.beginPath();ctx.moveTo(a.x+5*VIEW.s,yy+6*VIEW.s);ctx.lineTo(a.x+ww/2,yy);ctx.lineTo(a.x+ww-5*VIEW.s,yy+6*VIEW.s);ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
+  }
+  function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+  function doors(L,w){
+    (L.doors||[]).forEach((d,i)=>{
+      const a=toScreen(d.x1,d.y1),b=toScreen(d.x2,d.y2);
+      const open=w.doorOpen[i];
+      if(d.flap){
+        // two flaps hinged at each end; swing down ~80° when open
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        const swing=open?1:0;
+        const drawFlap=(hx,hy,dir)=>{
+          const len=Math.abs(mx-hx);
+          ctx.save(); ctx.translate(hx,hy);
+          ctx.rotate(dir*swing*1.4);   // swing down into the gap
+          const g=ctx.createLinearGradient(0,0,dir*len,0);
+          g.addColorStop(0,'#6b5326'); g.addColorStop(1,'#3a2a14');
+          ctx.fillStyle=g;
+          rr(Math.min(0,dir*len),-6*VIEW.s,len,12*VIEW.s,4*VIEW.s); ctx.fill();
+          ctx.strokeStyle='#caa955'; ctx.lineWidth=1.5*VIEW.s; ctx.stroke();
+          // hinge
+          ctx.fillStyle='#9fb4dd'; ctx.beginPath();ctx.arc(0,0,4*VIEW.s,0,7);ctx.fill();
+          ctx.restore();
+        };
+        drawFlap(a.x,a.y,+1);
+        drawFlap(b.x,b.y,-1);
+        return;
+      }
+      if(open)return;
+      ctx.strokeStyle='#c9d6f0'; ctx.lineWidth=Math.max(3,7*VIEW.s); ctx.lineCap='round';
+      const arm = d.trig.k==='touch' && w.doorTimer[i]>=0;
+      if(arm){ctx.strokeStyle='#ff9b4d';}
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      ctx.fillStyle=arm?'#ff9b4d':'#9fb4dd';
+      ctx.beginPath();ctx.arc(a.x,a.y,Math.max(3,5*VIEW.s),0,7);ctx.fill();
+    });
+  }
+  function buttons(L,w){
+    (L.buttons||[]).forEach((b,i)=>{
+      const p=toScreen(b.x,b.y); const down=w.btnDown[i];
+      // plinth (small rocky base the button sits on)
+      ctx.fillStyle='#26314c';
+      rr(p.x-30*VIEW.s, p.y+2*VIEW.s, 60*VIEW.s, 16*VIEW.s, 4*VIEW.s); ctx.fill();
+      ctx.fillStyle='#1b2236';
+      rr(p.x-24*VIEW.s, p.y+12*VIEW.s, 48*VIEW.s, 10*VIEW.s, 3*VIEW.s); ctx.fill();
+      // button cap
+      if(down){
+        ctx.shadowColor='#37e0c8'; ctx.shadowBlur=16*VIEW.s;
+        ctx.fillStyle='#46e0b0';
+      } else {
+        ctx.fillStyle='#ffb347';
+      }
+      rr(p.x-22*VIEW.s, p.y-(down?2:9)*VIEW.s, 44*VIEW.s, (down?9:13)*VIEW.s, 4*VIEW.s); ctx.fill();
+      ctx.shadowBlur=0;
+      // glow ring when active
+      if(down){ ctx.strokeStyle='#aef7e4'; ctx.lineWidth=2*VIEW.s; ctx.globalAlpha=0.8;
+        rr(p.x-24*VIEW.s,p.y-4*VIEW.s,48*VIEW.s,12*VIEW.s,5*VIEW.s); ctx.stroke(); ctx.globalAlpha=1; }
+    });
+  }
+  function buttons(L,w){
+    (L.buttons||[]).forEach((b,i)=>{
+      const p=toScreen(b.x,b.y); const down=w.btnDown[i];
+      const s=VIEW.s;
+      if(b.face==='left'||b.face==='right'){
+        // wall-mounted: rotated 90°, the pad pushes horizontally into the wall
+        const dir=(b.face==='right')?1:-1;   // which way the pad faces
+        ctx.fillStyle=down?'#2a3450':'#3a2a14';
+        rr(p.x-(down?5:11)*s*dir - (dir<0?0:0), p.y-26*s, (down?10:16)*s, 52*s, 5*s);ctx.fill();
+        ctx.fillStyle=down?'#39507e':'#ffb347';
+        rr(p.x-(down?3:9)*s*dir - (dir<0?0:0), p.y-22*s, 7*s, 44*s, 3*s);ctx.fill();
+      } else {
+        ctx.fillStyle=down?'#2a3450':'#3a2a14';
+        rr(p.x-26*s,p.y-(down?5:11)*s,52*s,(down?10:16)*s,5*s);ctx.fill();
+        ctx.fillStyle=down?'#39507e':'#ffb347';
+        rr(p.x-22*s,p.y-(down?3:9)*s,44*s,7*s,3*s);ctx.fill();
+      }
+    });
+  }
+  function flippers(L,w){
+    (L.flippers||[]).forEach((f,i)=>{
+      const p=toScreen(f.x,f.y); const d=hr(f.h);
+      const ang=Math.atan2(d.y,d.x);
+      const kick=w.flipAnim[i]||0;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(ang-Math.PI/2);
+      const len=64*VIEW.s*(1+kick*0.12);
+      ctx.fillStyle='#1a2238'; rr(-15*VIEW.s,-8*VIEW.s,30*VIEW.s,len,8*VIEW.s);ctx.fill();
+      const g=ctx.createLinearGradient(0,0,0,-len);
+      g.addColorStop(0,'#37e0c8'); g.addColorStop(1,'#1aa89a');
+      ctx.fillStyle=g; rr(-11*VIEW.s,-len,22*VIEW.s,len,7*VIEW.s);ctx.fill();
+      ctx.fillStyle='#dffdf7'; ctx.beginPath();ctx.arc(0,-len+9*VIEW.s,6*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
+    });
+  }
+  function portals(L,w){
+    (L.portals||[]).forEach((pt,i)=>{
+      const t=performance.now()/1000;
+      drawPortal(toScreen(pt.ax,pt.ay),'#8a7bff',t);
+      drawPortal(toScreen(pt.bx,pt.by),'#ff7bd0',t+1);
+    });
+  }
+  function drawPortal(p,col,t){
+    ctx.save();ctx.translate(p.x,p.y);
+    for(let k=0;k<3;k++){
+      const r=(18+k*8)*VIEW.s; const a=t*2+k;
+      ctx.strokeStyle=col+(k===0?'ff':'88'); ctx.lineWidth=3*VIEW.s;
+      ctx.beginPath();
+      for(let s=0;s<=20;s++){const th=a+s/20*Math.PI*1.6;ctx.lineTo(Math.cos(th)*r,Math.sin(th)*r*0.8);}
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function echos(L,w,launched){
+    for(const a of w.arrows){
+      const p=toScreen(a.x,a.y);
+      const h=BP.arrowAngleHour(a,w.t);
+      const d=hr(h); const ang=Math.atan2(d.y,d.x);
+      ctx.save();ctx.translate(p.x,p.y);
+      const R=BP.ARROW_R*VIEW.s;
+      const spent=!!a.spent;
+      // draggable hint ring (pulsing) before launch
+      if(!launched){
+        const pulse=0.5+0.5*Math.sin(performance.now()/350);
+        ctx.strokeStyle='rgba(55,224,200,'+(0.18+0.32*pulse)+')';
+        ctx.lineWidth=3*VIEW.s; ctx.setLineDash([6*VIEW.s,7*VIEW.s]);
+        ctx.beginPath();ctx.arc(0,0,R+10*VIEW.s,0,7);ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // disc base
+      const g=ctx.createRadialGradient(0,0,2,0,0,R);
+      if(a.kind==='osc'){g.addColorStop(0,'#10202e');g.addColorStop(1,'#0a161f');}
+      else {g.addColorStop(0,'#10202e');g.addColorStop(1,'#0a1622');}
+      ctx.globalAlpha=spent?0.4:1;
+      ctx.fillStyle=g; ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();
+      const ring=a.kind==='osc'?'#ffb86b':'#37e0c8';
+      ctx.lineWidth=2.5*VIEW.s; ctx.strokeStyle=ring; ctx.globalAlpha=spent?0.4:0.9; ctx.stroke();
+      ctx.globalAlpha=spent?0.4:1;
+      // echo waves: 3 concentric arcs fanning out in the travel direction
+      ctx.rotate(ang);
+      const waveCol=a.kind==='osc'?'#ffcf8a':'#7af2e0';
+      // animate the waves rippling outward
+      const t=performance.now()/600;
+      for(let k=0;k<3;k++){
+        const phase=((t+k/3)%1);              // 0..1 expanding
+        const rad=(0.35+phase*0.95)*R;
+        ctx.globalAlpha=(spent?0.4:1)*(1-phase)*0.9;
+        ctx.lineWidth=(3.2-1.4*phase)*VIEW.s;
+        ctx.strokeStyle=waveCol;
+        ctx.beginPath();
+        // arc opening forward (a ~120° fan facing +x)
+        ctx.arc(-R*0.3, 0, rad, -Math.PI/3, Math.PI/3);
+        ctx.stroke();
+      }
+      // small emitter dot at the focus
+      ctx.globalAlpha=spent?0.4:1;
+      ctx.fillStyle=waveCol;
+      ctx.beginPath();ctx.arc(-R*0.42,0,3.2*VIEW.s,0,7);ctx.fill();
+      ctx.restore();
+    }
+  }
+  function bat(x,y,white,label,wing){
+    const p=toScreen(x,y); const s=VIEW.s*1.05;
+    const wg=Math.max(0,Math.min(1,wing||0));   // 0 = folded, 1 = wings out
+    // rock mount: a small craggy knob the bat grips, drawn above its rump so the bat
+    // never looks like it's floating (whether at the ceiling or out in open space).
+    const rumpY = p.y - 40*VIEW.s + 28*(VIEW.s*1.05) - 28*s;  // approx top of bat
+    ctx.save();
+    ctx.fillStyle='#10141c';
+    const mw=26*s;
+    ctx.beginPath();
+    ctx.moveTo(p.x-mw, rumpY+8*s);
+    ctx.lineTo(p.x-mw*0.5, rumpY-14*s);
+    ctx.lineTo(p.x, rumpY-6*s);
+    ctx.lineTo(p.x+mw*0.5, rumpY-16*s);
+    ctx.lineTo(p.x+mw, rumpY+8*s);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.save();
+    // Bats HANG upside-down from the ceiling: flip the art vertically (head down,
+    // body up). Anchor the rump near the mount.
+    const TY = p.y - 40*VIEW.s + 28*(VIEW.s*1.05);
+    ctx.translate(p.x, TY);
+    ctx.scale(1,-1);
+    const body=white?'#dff4ff':'#16243e', ear=white?'#bfe0f5':'#0e1830';
+    const wingCol=white?'#cfe9fb':'#1d2c48';
+    // wings (drawn behind body) — membrane with finger struts, scale/spread by wg
+    if(wg>0.02){
+      ctx.fillStyle=wingCol; ctx.globalAlpha=0.96;
+      for(const dir of [-1,1]){
+        ctx.save(); ctx.scale(dir,1);
+        const sp=wg;                 // spread factor
+        ctx.beginPath();
+        ctx.moveTo(10*s, -2*s);
+        ctx.quadraticCurveTo((20+40*sp)*s, (-18-10*sp)*s, (44+30*sp)*s, (2-6*sp)*s);
+        ctx.quadraticCurveTo((40+24*sp)*s, (10)*s, (34+20*sp)*s, (4)*s);
+        ctx.quadraticCurveTo((30+14*sp)*s, (16)*s, (24+12*sp)*s, (8)*s);
+        ctx.quadraticCurveTo((20+6*sp)*s, (20)*s, (14)*s, (12)*s);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
+    }
+    // body
+    ctx.fillStyle=body;
+    ctx.beginPath();ctx.ellipse(0,8*s,18*s,20*s,0,0,7);ctx.fill();
+    // head
+    ctx.beginPath();ctx.arc(0,-12*s,16*s,0,7);ctx.fill();
+    // ears (bat-ish, tall) — point up into the ceiling once flipped
+    ctx.fillStyle=ear;
+    ctx.beginPath();ctx.moveTo(-13*s,-20*s);ctx.lineTo(-20*s,-46*s);ctx.lineTo(-4*s,-26*s);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(13*s,-20*s);ctx.lineTo(20*s,-46*s);ctx.lineTo(4*s,-26*s);ctx.closePath();ctx.fill();
+    // eyes — counter-flip so pupils/glints sit naturally on the face
+    ctx.save(); ctx.translate(0,-13*s); ctx.scale(1,-1);
+    const eyeFill=white?'#f3fbff':'#dff4ff';
+    ctx.fillStyle=eyeFill;
+    ctx.beginPath();ctx.arc(-6*s,0,4.6*s,0,7);ctx.arc(6*s,0,4.6*s,0,7);ctx.fill();
+    ctx.fillStyle=white?'#ff5b7a':'#0a0f1c';
+    ctx.beginPath();ctx.arc(-6*s,0,2.3*s,0,7);ctx.arc(6*s,0,2.3*s,0,7);ctx.fill();
+    ctx.fillStyle='#ffffffcc';
+    ctx.beginPath();ctx.arc(-7*s,-1*s,0.9*s,0,7);ctx.arc(5*s,-1*s,0.9*s,0,7);ctx.fill();
+    ctx.restore();
+    // nose
+    ctx.fillStyle=white?'#ff8fa3':'#2a3b5e';ctx.beginPath();ctx.arc(0,-6*s,2.0*s,0,7);ctx.fill();
+    ctx.restore();
+    if(label){
+      // green flashing up-arrow pointing at the (black) bat, with bigger label below
+      const flash=0.5+0.5*Math.sin(performance.now()/250);
+      const ay=p.y+58*VIEW.s;                 // arrow sits below the bat's hanging head
+      ctx.save();
+      ctx.globalAlpha=0.35+0.65*flash;
+      ctx.fillStyle='#37e0a0';
+      ctx.shadowColor='#37e0a0'; ctx.shadowBlur=12*VIEW.s;
+      const aw=14*VIEW.s, ah=18*VIEW.s;
+      ctx.beginPath();                         // triangle pointing UP
+      ctx.moveTo(p.x, ay);
+      ctx.lineTo(p.x-aw, ay+ah);
+      ctx.lineTo(p.x-aw*0.4, ay+ah);
+      ctx.lineTo(p.x-aw*0.4, ay+ah+12*VIEW.s);
+      ctx.lineTo(p.x+aw*0.4, ay+ah+12*VIEW.s);
+      ctx.lineTo(p.x+aw*0.4, ay+ah);
+      ctx.lineTo(p.x+aw, ay+ah);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle='#eaf4ff';
+      ctx.font='700 '+(20*VIEW.s|0)+'px Trebuchet MS';
+      ctx.textAlign='center';
+      ctx.shadowColor='#000'; ctx.shadowBlur=4*VIEW.s;
+      ctx.fillText(label, p.x, p.y+108*VIEW.s);
+      ctx.shadowBlur=0;
+    }
+  }
+  function trail(pts,col,win,prog){
+    // pts may contain nulls (portal breaks). When win, draw a thicker green dashed
+    // line; prog (0..1) reveals it progressively from black bat -> white bat.
+    const clean=pts.filter(Boolean);
+    if(clean.length<2) return;
+    // cumulative lengths for progress reveal
+    let total=0; const segLen=[0];
+    for(let i=1;i<clean.length;i++){ total+=Math.hypot(clean[i].x-clean[i-1].x,clean[i].y-clean[i-1].y); segLen.push(total); }
+    const reveal = (prog==null?1:Math.max(0,Math.min(1,prog))) * total;
+    ctx.save();
+    ctx.strokeStyle=col;
+    ctx.lineWidth=(win?8:4)*VIEW.s;
+    ctx.setLineDash(win?[14*VIEW.s,12*VIEW.s]:[2*VIEW.s,10*VIEW.s]);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    if(win){ ctx.shadowBlur=0; }
+    ctx.beginPath();
+    let started=false;
+    for(let i=0;i<clean.length;i++){
+      const p=toScreen(clean[i].x,clean[i].y);
+      if(segLen[i]<=reveal){
+        if(!started){ctx.moveTo(p.x,p.y);started=true;}else ctx.lineTo(p.x,p.y);
+      } else {
+        // partial last segment up to the reveal point
+        const prev=clean[i-1], frac=(reveal-segLen[i-1])/(segLen[i]-segLen[i-1]);
+        const ix=prev.x+(clean[i].x-prev.x)*frac, iy=prev.y+(clean[i].y-prev.y)*frac;
+        const ip=toScreen(ix,iy);
+        if(started) ctx.lineTo(ip.x,ip.y);
+        break;
+      }
+    }
+    ctx.stroke();ctx.restore();
+  }
+  function ball(p,spin){
+    const s=toScreen(p.x,p.y);const R=BP.BALLR*VIEW.s;
+    ctx.save();
+    ctx.shadowColor='#ffcf33';ctx.shadowBlur=12*VIEW.s;
+    // base disc (yellow)
+    ctx.fillStyle='#ffd23d';ctx.beginPath();ctx.arc(s.x,s.y,R,0,7);ctx.fill();
+    ctx.shadowBlur=0;
+    // spinning black quarters
+    ctx.translate(s.x,s.y); ctx.rotate(spin||0);
+    ctx.fillStyle='#111418';
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,0,Math.PI/2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,Math.PI,Math.PI*1.5);ctx.closePath();ctx.fill();
+    // rim
+    ctx.rotate(-(spin||0));
+    ctx.strokeStyle='#00000055';ctx.lineWidth=1.5*VIEW.s;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+    ctx.restore();
+  }
+  function frame(w,opts){
+    Render._ch = (w.lvl && w.lvl.ch) || 1;
+    applyBaseTransform();
+    bg(); const L=w.lvl;
+    rock(L); wavefloor(L,w); gatebars(L,w); bouncy(L,w); cogs(L,w); windmills(L,w); doors(L,w); buttons(L,w); flippers(L,w); portals(L,w);
+    if(w.won){
+      // winning route: thick green dotted line revealed black-bat -> white-bat
+      trail(w.pts, '#37e0a0', true, opts.pathProg!=null?opts.pathProg:1);
+    } else if(opts.showTrail && w.pts.length>1){
+      // in-flight breadcrumb (faint blue)
+      trail(w.pts, '#5fd0ff66', false, 1);
+    }
+    echos(L,w,opts.launched);
+    bat(L.black.x,L.black.y,false, opts.canFire?'Tap to Release':'', opts.blackWing||0);
+    bat(L.white.x,L.white.y,true,'', opts.whiteWing||0);
+    if(opts.launched && !w.won) ball(w.p, w.spin);
+  }
+  return {frame, _ch:1};
+})();
+
+/* ============ Game controller ============ */
+const Game=(()=>{
+  let L=null, w=null, launched=false, canFire=true, raf=0;
+  let placements=[];           // {x,y} for drag arrows
+  let dragIdx=-1, dragOff={x:0,y:0};
+  let viewer=false, autoPlacing=false, preT=0;
+  let resolved=false, paused=false;
+  let pathProg=1, winAnim=0, winScore=0;
+  let blackWing=0, whiteWing=0;
+
+  // Default echo layout: spread across the open width near the ceiling, but skip any
+  // slot that overlaps the black bat's launch zone (within the launch/grab radius)
+  // so echos never sit on top of the bat where they'd block tapping to release.
+  function defaultPlacements(L,nt){
+    const out=[];
+    const bx=L.black.x, by=L.black.y+26, LAUNCH=170;   // launch zone radius
+    // candidate x slots across the playable width
+    const slots=[];
+    for(let x=180;x<=1420;x+=120) slots.push(x);
+    // keep only slots clear of the launch zone (and not on the far wall edges)
+    const clear=slots.filter(x=>Math.hypot(x-bx, 345-by) > LAUNCH);
+    // prefer slots on the opposite side of the level from the black bat
+    clear.sort((a,b)=> Math.abs(b-bx) - Math.abs(a-bx));
+    for(let i=0;i<nt;i++){
+      const x = clear.length? clear[i % clear.length] + (Math.floor(i/clear.length))*40 : 700+i*120;
+      out.push({ x, y:345 });
+    }
+    return out;
+  }
+  function loadLevel(id, asViewer){
+    viewer=!!asViewer; resolved=false;
+    L=LEVELS[id-1];
+    // arrows start parked on the left, stacked vertically, NOT in solution spots
+    const probe=BP.makeWorld(L,null);
+    const nt=(probe.toolDefs||[]).length;
+    placements=defaultPlacements(L,nt);
+    // if the player has a saved best layout for this level, load it on entry
+    if(!viewer){ const best=Store.bestPlacementFor(id); if(best&&best.length===nt) placements=best.map(p=>({x:p.x,y:p.y,h:p.h})); }
+    preT=0;
+    rebuild(); launched=false; canFire=true;
+    document.getElementById('lvlName').innerHTML=
+      '<div id="lvlName2"><small>Level '+id+(viewer?' · viewer':'')+'</small>'+L.name+'</div>';
+    document.getElementById('scoreNum').textContent='999';
+    document.getElementById('result').classList.remove('on');
+    document.getElementById('viewerTag').style.display=viewer?'block':'none';
+    document.getElementById('viewerBadge').style.display=viewer?'flex':'none';
+    // tutorial tip: show the level's intro message; dismissed on first touch
+    const tipEl=document.getElementById('tip');
+    if(L.tip){ document.getElementById('tipText').textContent=L.tip; tipEl.classList.add('on'); }
+    else tipEl.classList.remove('on');
+    UI.go('game'); loop();
+  }
+  function rebuild(){ w=BP.makeWorld(L,placements); if(!launched&&w) w.t=preT; }
+
+  function fire(){
+    if(launched||!canFire) return;
+    launched=true; canFire=false; dragIdx=-1;
+    blackWing=1;   // wings snap out as it launches
+    // freeze oscillator phase at the moment of release: keep current w.t as the launch offset
+  }
+  function retry(){ launched=false; canFire=true; resolved=false;
+    preT=0; pathProg=1; winAnim=0; blackWing=0; whiteWing=0;
+    document.getElementById('result').classList.remove('on');
+    document.getElementById('scoreNum').textContent='999';
+    rebuild(); }
+  function next(){ const id=L.id+1; if(id<=LEVELS.length && (viewer||Store.unlocked(id))) loadLevel(id,viewer); else UI.quitToSelect(); }
+
+  function starsForScore(s){ if(s>=L.three)return 3; if(s>=L.two)return 2; return 1; }
+
+  function finish(){
+    if(resolved) return;
+    resolved=true; const won=w.won;
+    const sc=won?BP.score(w):0;
+    const stars=won?starsForScore(sc):0;
+    const r=document.getElementById('result');
+    document.getElementById('rTitle').textContent=won?'LEVEL COMPLETE!':'TRY AGAIN';
+    document.getElementById('rTitle').className=won?'win':'lose';
+    let starHtml='';
+    for(let i=1;i<=3;i++)starHtml+='<span class="'+(i<=stars?'f':'e')+'">★</span>';
+    document.getElementById('rStars').innerHTML=won?starHtml:'';
+    if(won){
+      const prevBest=viewer?0:Store.bestFor(L.id);
+      document.getElementById('rScore').innerHTML='<b>'+sc+'</b> points'+
+        (!viewer&&prevBest?'<span class="best">best '+Math.max(prevBest,sc)+' · ★ at '+L.two+' / '+L.three+'</span>'
+                          :'<span class="best">★★ at '+L.two+' · ★★★ at '+L.three+'</span>');
+      document.getElementById('rHint').textContent= stars<3 ? 'Shorter path = higher score. Find a tighter route for ★★★.' : 'Perfect route!';
+    } else {
+      document.getElementById('rScore').innerHTML='';
+      document.getElementById('rHint').textContent='Reposition your echo(s) and try again.';
+    }
+    if(won && !viewer){ Store.record(L.id,stars,sc, placements.map(p=>({x:Math.round(p.x),y:Math.round(p.y),h:p.h}))); UI.refreshTitle(); }
+    const nextBtn=document.getElementById('rNext');
+    // show NEXT only when a next level actually exists and is unlocked; on the final
+    // level there is no next, so the button is hidden (the player returns to the menu).
+    const hasNext = L.id < LEVELS.length;
+    const canNext = hasNext && (viewer || Store.unlocked(L.id+1));
+    nextBtn.style.display=canNext?'inline-block':'none';
+    r.classList.add('on');
+  }
+
+  function viewerSolve(){
+    // animate the reference solution from a known-good launch phase
+    if(L.refSol&&L.refSol.length) placements=L.refSol.map(p=>({x:p.x,y:p.y}));
+    retry(); preT=0; rebuild();
+    setTimeout(()=>fire(),120);
+    UI.toast('Playing reference solution · score '+L.refScore);
+  }
+
+  function nTools(){ return (w && w.toolDefs) ? w.toolDefs.length : 0; }
+
+  // input
+  function onDown(cx,cy){
+    if(paused) return;
+    // a tutorial tip showing? first touch just dismisses it.
+    const tipEl=document.getElementById('tip');
+    if(tipEl && tipEl.classList.contains('on')){ tipEl.classList.remove('on'); return; }
+    // after release: a tap anywhere resets the ball and re-enables dragging
+    if(launched){ retry(); return; }
+    const wp=toWorld(cx,cy);
+    // LAUNCH PRECEDENCE: a tap on/near the black bat rolls the ball, even if an
+    // echo is parked nearby (makes launching reliable when an echo sits by the bat).
+    const db=Math.hypot(wp.x-L.black.x, wp.y-(L.black.y+26));
+    if(db<150){ fire(); return; }
+    // otherwise pick nearest echo within a generous grab radius
+    let best=-1,bd=1e9;
+    for(let i=0;i<nTools();i++){
+      const dd=Math.hypot(wp.x-placements[i].x,wp.y-placements[i].y);
+      if(dd<bd&&dd<150){bd=dd;best=i;}
+    }
+    if(best>=0){ dragIdx=best; dragOff={x:placements[best].x-wp.x,y:placements[best].y-wp.y}; return; }
+  }
+  function onMove(cx,cy){
+    if(dragIdx<0) return;
+    const wp=toWorld(cx,cy);
+    let nx=wp.x+dragOff.x, ny=wp.y+dragOff.y;
+    // allow placement right up to (and slightly past) the world edges, keeping
+    // only a few px of the echo on-screen so it can still be grabbed back.
+    const m = BP.ARROW_R - 8;            // how far the center may go past the edge
+    nx=Math.max(-m, Math.min(BP.W+m, nx));
+    ny=Math.max(-m, Math.min(BP.H+m, ny));
+    placements[dragIdx]={x:nx,y:ny}; rebuild();
+  }
+  function onUp(){ dragIdx=-1; }
+
+  let last=0, acc=0, winStartScore=999;
+  function loop(){
+    cancelAnimationFrame(raf);
+    last=performance.now(); acc=0;
+    const tick=(ts)=>{
+      raf=requestAnimationFrame(tick);
+      let dt=(ts-last)/1000; last=ts;
+      if(dt>0.1)dt=0.1;                 // clamp after tab-switch
+      if(paused){ Render.frame(w,{launched,canFire:false,showTrail:launched,pathProg,blackWing,whiteWing}); return; }
+      if(launched&&!w.done){
+        acc+=dt;
+        let guard=0;
+        while(acc>=BP.DT && !w.done && guard<600){ BP.step(w); acc-=BP.DT; guard++; }
+        // score stays at 999 during flight — do NOT update live
+        if(w.done){
+          if(w.won){
+            // begin path-reveal + score-countdown animation
+            pathProg=0; winAnim=0; winScore=BP.score(w);
+            document.getElementById('scoreNum').textContent='999';
+          } else if(!resolved){ setTimeout(finish,420); }
+        }
+      } else if(!launched){
+        // pre-launch: keep oscillators sweeping by advancing the world clock only
+        preT+=dt; if(w) w.t=preT;
+      }
+      // win animation: reveal the green path, then count the score down
+      if(w && w.won && !resolved){
+        winAnim+=dt;
+        const REVEAL=1.7, COUNT=1.0;
+        if(winAnim<=REVEAL){
+          pathProg=winAnim/REVEAL;
+          document.getElementById('scoreNum').textContent='999';
+        } else {
+          pathProg=1;
+          const k=Math.min(1,(winAnim-REVEAL)/COUNT);
+          const shown=Math.round(999+(winScore-999)*k);
+          document.getElementById('scoreNum').textContent=String(shown);
+          if(k>=1 && !resolved) finish();
+        }
+      }
+      // wing animation
+      // black bat: wings snap out on launch, fold back over ~0.6s
+      if(launched){ blackWing = Math.max(0, blackWing - dt/0.6); }
+      else { blackWing = 0; }
+      // white bat: wings spread open when it receives the ball (win), and stay
+      if(w && w.won){ whiteWing = Math.min(1, whiteWing + dt/0.3); }
+      else { whiteWing = 0; }
+
+      Render.frame(w,{launched,canFire:canFire&&!launched,showTrail:launched,pathProg,blackWing,whiteWing});
+    };
+    raf=requestAnimationFrame(tick);
+  }
+
+  function pause(){ paused=true; }
+  function setPaused(v){ paused=v; }
+  function resumeGame(){ paused=false; }
+  function arrowsToDefault(){
+    const nt=nTools();
+    placements=defaultPlacements(L,nt);
+    launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
+    rebuild();
+  }
+  function arrowsToBest(){
+    const best=Store.bestPlacementFor(L.id);
+    if(!best||!best.length) return false;
+    placements=best.map(p=>({x:p.x,y:p.y}));
+    launched=false; canFire=true; resolved=false; preT=0; pathProg=1; winAnim=0;
+    rebuild(); return true;
+  }
+  function hasBest(){ const b=Store.bestPlacementFor(L?L.id:0); return !!(b&&b.length); }
+
+  return {loadLevel,fire,retry,next,onDown,onMove,onUp,viewerSolve,
+          pause,setPaused,resumeGame,arrowsToDefault,arrowsToBest,hasBest,
+          get launched(){return launched;}, get viewer(){return viewer;}, get paused(){return paused;}};
+})();
+
+/* pointer wiring — listen on the game screen overlay (it sits above the canvas),
+   so drags aren't swallowed by the overlay. HUD buttons stop propagation via their own handlers. */
+(function(){
+  let active=false;
+  const surface=document.getElementById('game');
+  const xy=e=>({x:e.clientX,y:e.clientY});
+  surface.addEventListener('pointerdown',e=>{
+    // ignore taps that start on an actual control (buttons, pills)
+    if(e.target.closest('.icbtn,.btn,.pbtn,#result,#pause')) return;
+    active=true; const p=xy(e); Game.onDown(p.x,p.y);
+  });
+  surface.addEventListener('pointermove',e=>{if(active){const p=xy(e);Game.onMove(p.x,p.y);}});
+  window.addEventListener('pointerup',()=>{active=false;Game.onUp();});
+  window.addEventListener('pointercancel',()=>{active=false;Game.onUp();});
+})();
+
+/* ============ UI ============ */
+const UI=(()=>{
+  function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+    document.getElementById(id).classList.add('on');}
+  function toTitle(){go('title');refreshTitle();}
+  function play(){ // resume at first unlocked-but-uncleared, else level 1
+    let id=1; for(let i=1;i<=LEVELS.length;i++){ if(Store.unlocked(i)&&!Store.bestFor(i)){id=i;break;} if(Store.unlocked(i))id=i; }
+    Game.loadLevel(id,false);
+  }
+  function refreshTitle(){
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+    set('ttStars',Store.totalStars()); set('tStars',Store.totalStars());
+    set('ttScore',Store.totalScore()); set('tScore',Store.totalScore());
+    set('ttDone',Store.cleared()+'/'+LEVELS.length);
+    set('tDone',Store.cleared()+'/'+LEVELS.length);
+  }
+  function starStr(n){let s='';for(let i=1;i<=3;i++)s+=(i<=n?'★':'·');return s;}
+  function showSelect(){ buildList(false); refreshTitle(); go('select'); }
+  function openViewer(){ buildList(true); refreshTitle(); go('select');
+    UI.toast('Viewer: every level unlocked. Tap ✦ in-game to auto-solve.'); }
+  function buildList(viewer){
+    const list=document.getElementById('levlist'); list.innerHTML='';
+    LEVELS.forEach(l=>{
+      const locked = !viewer && !Store.unlocked(l.id);
+      const st = Store.starsFor(l.id);
+      const best = Store.bestFor(l.id);
+      const beat = best>0 && best>=(l.refScore||99999);   // beat the verified reference
+      const row=document.createElement('div');
+      row.className='lrow'+(locked?' lock':'')+(beat?' beat':'');
+      const starsHtml = viewer
+        ? '<div class="lstars" style="color:var(--glow)">▶ test</div>'
+        : (locked ? '<div class="lstars"></div>'
+                  : '<div class="lstars'+(beat?' hot':'')+'">'+starStr(st)+'</div>');
+      const bestHtml = viewer ? 'reference '+(l.refScore||'?')
+                              : (best>0 ? ('best '+best+(beat?' · beat ref!':'')) : 'not cleared');
+      row.innerHTML =
+        '<div class="ln">'+l.id+'</div>'+
+        '<div class="lmid"><div class="lnm">'+l.name+'</div>'+
+        '<div class="lbest">'+(locked?'locked':bestHtml)+'</div></div>'+
+        starsHtml;
+      if(!locked) row.onclick=()=>Game.loadLevel(l.id, viewer);
+      list.appendChild(row);
+    });
+  }
+  function quitToSelect(){document.getElementById('result').classList.remove('on');
+    document.getElementById('pause').classList.remove('on');Game.resumeGame();showSelect();}
+  function viewerSolve(){Game.viewerSolve();}
+  let tt;
+  function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
+    clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600);}
+  return {go,toTitle,play,showSelect,refreshTitle,quitToSelect,openViewer,viewerSolve,toast,
+    pause(){
+      Game.pause();
+      const pb=document.getElementById('pbBest');
+      if(pb) pb.classList.toggle('dim', !Game.hasBest());
+      document.getElementById('pause').classList.add('on');
+    },
+    resume(){ document.getElementById('pause').classList.remove('on'); Game.resumeGame(); },
+    arrowsDefault(){ Game.arrowsToDefault(); UI.resume(); UI.toast('Echos reset to default'); },
+    arrowsBest(){
+      if(Game.arrowsToBest()){ UI.resume(); UI.toast('Echos set to your best layout'); }
+      else { UI.toast('No best layout saved yet — clear the level first'); }
+    },
+    toggleFullscreen(){
+      const el=document.documentElement;
+      const fs=document.fullscreenElement||document.webkitFullscreenElement;
+      try{
+        if(!fs){ (el.requestFullscreen||el.webkitRequestFullscreen||(()=>{})).call(el); }
+        else { (document.exitFullscreen||document.webkitExitFullscreen||(()=>{})).call(document); }
+      }catch(e){}
+      // iOS Safari doesn't support element fullscreen; hint the user
+      if(!document.fullscreenEnabled && !document.webkitFullscreenEnabled){
+        UI.toast('For true fullscreen on iPhone: Share → Add to Home Screen, then open from the icon.');
+      }
+      setTimeout(resize,120);
+    },
+    resetAll(){if(confirm('Erase all progress?')){localStorage.removeItem(SAVE_KEY);Store.data={stars:{},best:{},unlocked:1};refreshTitle();}}};
+})();
+
+/* boot */
+Store.load(); resize(); UI.refreshTitle();
+// idle render of title-time canvas (dark)
+(function idle(){ ctx.clearRect(0,0,VIEW.W,VIEW.H); requestAnimationFrame(()=>{}); })();
+</script>
+</body>
+</html>
